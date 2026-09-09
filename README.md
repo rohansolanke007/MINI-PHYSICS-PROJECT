@@ -1,304 +1,406 @@
-# Mini Physics Engine
-### An OOP + STL Based 2D Physics Simulation in C++
+# ⚙️ Mini Physics Engine
 
-A console-based 2D physics simulator built for a second-year OOP course
-project. The primary goal of this codebase is to **demonstrate OOP
-concepts genuinely and defensibly**, using a physics simulation as the
-vehicle — not to be a research-grade physics engine.
+### Interactive 2D Physics Simulation Engine built in C++ and WebAssembly
+
+A lightweight 2D physics simulation engine developed in **C++** as an Object-Oriented Programming project.
+
+The project demonstrates core **OOP, STL, physics simulation, collision detection, exception handling, file handling, and WebAssembly** concepts through an interactive browser-based interface.
 
 ---
 
-## 1. How to Build and Run
+## 🚀 Live Interactive Interface
 
-You need a C++17-capable compiler (g++ 7+ or clang++ 5+).
+The project includes a browser-based interface that allows users to create and interact with objects in the physics simulation.
 
-```bash
-# From the project root:
-make          # builds bin/physics_engine
-make run      # builds (if needed) and runs it
-make clean    # removes build artifacts
+### What you can do
+
+- Add dynamic physics objects
+- Add static objects
+- Create circles, rectangles and triangles
+- Modify position and velocity
+- Configure gravity
+- Configure friction
+- Change simulation time step
+- Apply forces / impulses
+- Run, pause and step through the simulation
+- Detect and visualize collisions
+- View real-time physics statistics
+- Inspect individual objects
+- Load demonstration scenes
+- Reset the simulation
+
+---
+
+## 🖥️ Interface Preview
+
+The web interface provides a real-time visualization of the physics engine.
+
+![Physics Engine Interface](web/screenshot.png)
+
+> Add your project screenshot as `web/screenshot.png`.
+
+---
+
+## 🧠 Physics Concepts
+
+The engine implements fundamental concepts used in 2D physics simulation.
+
+### Gravity
+
+Objects experience gravitational acceleration:
+
+```text
+F = m × g
 ```
 
-If you don't have `make`, you can compile directly:
+where:
+
+- `m` = mass
+- `g` = gravitational acceleration
+
+### Velocity and Position
+
+Object positions are updated using their velocity and simulation time step.
+
+```text
+position = position + velocity × Δt
+```
+
+### Forces
+
+Forces modify the velocity of dynamic objects.
+
+```text
+a = F / m
+```
+
+### Impulse
+
+The engine supports applying impulses to dynamic objects to produce instantaneous changes in velocity.
+
+### Friction
+
+A simplified kinetic-friction model is used to simulate resistance between objects.
+
+### Collision Detection
+
+The engine detects collisions between supported shapes and responds according to the physics model.
+
+---
+
+# 🏗️ Object-Oriented Programming Concepts
+
+This project was designed specifically to demonstrate important **C++ OOP concepts**.
+
+### Encapsulation
+
+Physics object properties and behaviour are organized within dedicated classes.
+
+### Inheritance
+
+Different object/shape types share common interfaces and behaviour through inheritance.
+
+### Polymorphism
+
+Common interfaces allow different shape/object implementations to be handled through base-class references.
+
+### Abstraction
+
+The physics engine separates simulation logic from individual object and shape implementations.
+
+### Operator Overloading
+
+Custom operators are used for vector and mathematical operations.
+
+For example:
+
+```cpp
+Vector2D result = velocity + acceleration;
+```
+
+### Exception Handling
+
+Custom exception classes are used to handle invalid simulation operations and errors.
+
+### STL
+
+The project makes use of C++ Standard Template Library components for managing simulation data.
+
+### File Handling
+
+Simulation data and demonstration scenes can be stored and loaded using files.
+
+---
+
+# 🧩 System Architecture
+
+The project is divided into several logical components.
+
+```text
+                    ┌──────────────────────┐
+                    │   Web Interface      │
+                    │ HTML / JavaScript    │
+                    └──────────┬───────────┘
+                               │
+                               ▼
+                    ┌──────────────────────┐
+                    │      Web API         │
+                    │      WebAPI.cpp      │
+                    └──────────┬───────────┘
+                               │
+                               ▼
+             ┌─────────────────────────────────┐
+             │       Physics Engine            │
+             │                                 │
+             │  Gravity                        │
+             │  Forces                         │
+             │  Collision Detection            │
+             │  Integration                    │
+             │  Simulation State                │
+             └───────────────┬─────────────────┘
+                             │
+                             ▼
+                ┌─────────────────────────┐
+                │     Physics Objects     │
+                │                         │
+                │ Circle                  │
+                │ Rectangle               │
+                │ Triangle                │
+                └─────────────────────────┘
+```
+
+---
+
+# 📁 Project Structure
+
+```text
+MINI-PHYSICS-PROJECT/
+│
+├── data/
+│   └── Simulation data
+│
+├── include/
+│   ├── Collision.h
+│   ├── Exceptions.h
+│   ├── FileHandler.h
+│   ├── Force.h
+│   ├── MathUtils.h
+│   ├── ObjectManager.h
+│   ├── PhysicsEngine.h
+│   ├── PhysicsObject.h
+│   ├── Shape.h
+│   ├── SimulationState.h
+│   ├── Statistics.h
+│   ├── TraceRecorder.h
+│   ├── Vector2D.h
+│   ├── WebAPI.h
+│   └── World.h
+│
+├── src/
+│   ├── Collision.cpp
+│   ├── FileHandler.cpp
+│   ├── Force.cpp
+│   ├── PhysicsEngine.cpp
+│   ├── PhysicsObject.cpp
+│   ├── Shape.cpp
+│   ├── SimulationState.cpp
+│   ├── TraceRecorder.cpp
+│   ├── Vector2D.cpp
+│   ├── WebAPI.cpp
+│   ├── World.cpp
+│   └── main.cpp
+│
+├── web/
+│   ├── examples/
+│   ├── index.html
+│   ├── physics_engine.js
+│   └── physics_engine.wasm
+│
+├── Makefile
+├── build_web.sh
+├── start_web.sh
+└── README.md
+```
+
+---
+
+# 🌐 WebAssembly Integration
+
+The physics calculations are implemented in **C++**.
+
+To make the engine accessible from a web browser, the C++ engine is compiled to **WebAssembly (WASM)** using **Emscripten**.
+
+```text
+C++ Physics Engine
+        │
+        ▼
+   Emscripten
+        │
+        ▼
+ WebAssembly (.wasm)
+        │
+        ▼
+ JavaScript API
+        │
+        ▼
+ Browser Interface
+```
+
+This allows the browser interface to use the actual C++ physics engine instead of reimplementing the physics calculations in JavaScript.
+
+---
+
+# 🛠️ Technologies Used
+
+| Technology | Purpose |
+|------------|---------|
+| C++17 | Physics engine |
+| Object-Oriented Programming | Software architecture |
+| STL | Data structures and utilities |
+| Emscripten | C++ → WebAssembly |
+| WebAssembly | Browser execution |
+| HTML | User interface |
+| CSS | Interface styling |
+| JavaScript | Browser controls and rendering |
+| Makefile | Native build automation |
+| Bash | Build and startup scripts |
+
+---
+
+# ▶️ Running the Project
+
+## Native C++ Version
+
+From the project root:
 
 ```bash
-g++ -std=c++17 -Wall -Wextra -Iinclude src/*.cpp -o bin/physics_engine
+make
+```
+
+Then:
+
+```bash
 ./bin/physics_engine
 ```
 
-The program is an interactive console menu — no external libraries or
-frameworks are required, only the standard C++ library.
-
-A `data/` folder is provided as a convenient place to save/load
-simulation files from the menu (e.g. type `data/save1.txt` when
-prompted), but you can save/load using any path.
-
 ---
 
-## 2. Project Structure
+## 🌐 Web Version
 
-```
-include/            Header files (class declarations)
-  Vector2D.h         - 2D vector math + operator overloading
-  Exceptions.h        - Custom exception hierarchy
-  Shape.h              - Abstract Shape + Circle/Rectangle/Triangle
-  PhysicsObject.h      - Abstract PhysicsObject + Dynamic/StaticObject
-  Force.h              - Abstract Force + Gravity/Friction/Applied
-  ObjectManager.h      - Class template (generic ID-keyed registry)
-  MathUtils.h          - Function templates (clampValue, average)
-  Collision.h          - Collision struct + CollisionManager
-  SimulationState.h    - Serializable snapshot of the World
-  FileHandler.h        - Save/load simulation state to text files
-  Statistics.h         - Aggregate simulation statistics
-  World.h              - Owns objects/forces, drives simulation state
-  PhysicsEngine.h      - Top-level controller (timestep, pause/resume)
-  TraceRecorder.h      - Records a full run and exports JSON for the web viewer
+### 1. Build the WebAssembly version
 
-src/                Implementation (.cpp) files, one per header
-  main.cpp             - Console menu / UI layer only
-
-Makefile            Build script
-data/                Suggested folder for save files (FileHandler format)
-
-web/                 Browser-based trace viewer (the "frontend")
-  index.html           - Self-contained HTML/CSS/JS trace player (no build step, no dependencies)
-  examples/            - Two ready-made trace.json files to try immediately:
-    gravity_bounce_demo.json  - two circles falling and bouncing off the floor
-    collision_demo.json       - two circles colliding head-on (momentum-conserving)
-```
-
----
-
-## 3. Architecture at a Glance
-
-```
-PhysicsEngine  (simulation control: timestep, pause/resume)
-      |
-      v
-    World  (physics state + rules)
-      |
-      +-- ObjectManager<PhysicsObject>  (owns all bodies)
-      |         |
-      |         +-- DynamicObject  --\
-      |         +-- StaticObject   ---> both "have-a" Shape (composition)
-      |                                        |
-      |                                        +-- Circle
-      |                                        +-- Rectangle
-      |                                        +-- Triangle
-      |
-      +-- Force (gravity, friction)
-      |         +-- GravityForce
-      |         +-- FrictionForce
-      |         +-- AppliedForce
-      |
-      +-- CollisionManager --> produces Collision events
-      |
-      +-- SimulationState (snapshot) <--> FileHandler (save/load)
-      +-- std::stack<SimulationState> (undo history)
-
-Statistics is computed on-demand from World, not stored redundantly.
-```
-
-**The most important design decision**: `PhysicsObject` (mass, position,
-velocity — physics state) and `Shape` (area, bounding radius — geometry)
-are two *separate* class hierarchies connected by composition
-(`PhysicsObject` has a `std::unique_ptr<Shape>`), not by inheritance.
-This means physics behaviour (Dynamic vs Static) and geometry (Circle vs
-Rectangle vs Triangle) can vary independently.
-
-**Documented simplification**: collision detection/resolution uses each
-shape's *bounding radius* (a circle-circle check) rather than exact
-polygon-vs-polygon math. This is intentional — exact geometric collision
-for arbitrary shape pairs is a real research problem, not a second-year
-OOP exercise. It is called out here explicitly so it reads as a designed
-trade-off, not a gap.
-
----
-
-## 4. OOP Concept → Code Location Map (for viva prep)
-
-| Concept | Where |
-|---|---|
-| Encapsulation | `PhysicsObject` (private state, public accessors) |
-| Constructors validating input | `Circle`, `Rectangle`, `Triangle`, `PhysicsObject`, `DynamicObject` constructors |
-| Static members | `PhysicsObject::nextId` |
-| Abstract classes / pure virtual functions | `Shape`, `PhysicsObject`, `Force` |
-| Inheritance | `Shape` → `Circle/Rectangle/Triangle`; `PhysicsObject` → `Dynamic/StaticObject`; `Force` → `Gravity/Friction/Applied`; exception hierarchy |
-| Runtime polymorphism / virtual dispatch | `shape->getArea()`, `force->apply(obj)`, `obj->update(dt)` |
-| Upcasting | Storing `Circle*`/`Rectangle*`/`Triangle*` as `Shape*` (or `unique_ptr<Shape>`) |
-| Downcasting | `SimulationState::captureFrom()` — `static_cast<const Circle*>(shape)` after checking `getType()` |
-| Operator overloading | `Vector2D` (`+ - * / == != << >>`) |
-| Class templates | `ObjectManager<T>` |
-| Function templates | `clampValue<T>()`, `average<T>()` in `MathUtils.h` |
-| STL — vector | `std::vector<Collision>` results |
-| STL — map | `ObjectManager<T>` internal `std::map<int, unique_ptr<T>>` |
-| STL — set | `std::set<pair<int,int>>` for collision pair de-duplication |
-| STL — queue | `World`'s `recentCollisionEvents` |
-| STL — stack | `World`'s undo `history` |
-| Custom exceptions | `Exceptions.h` (`InvalidMassException`, `InvalidShapeException`, `InvalidObjectException`, `FileException`, `InvalidSimulationException`) |
-| try/catch/throw + stack unwinding | `main.cpp` flows catch `PhysicsException&` around deep call chains (e.g. `loadSimulationFlow`) |
-| File I/O (text files) | `FileHandler::saveToFile` / `loadFromFile` |
-| Dynamic memory management | `std::unique_ptr<Shape>`, `std::unique_ptr<PhysicsObject>`, `std::unique_ptr<Force>` throughout (no raw `new`/`delete`) |
-| Composition / class reuse | `TraceRecorder` is built entirely on top of `SimulationState` rather than re-deriving object data — a second, JSON-based file format sitting alongside the text-based `FileHandler` format |
-
----
-
-## 5. Web Frontend (Trace Viewer)
-
-The console app **is** the physics engine — the web page is a pure
-**playback/telemetry viewer**. It never re-simulates anything; it only
-renders exactly what the C++ program already computed. This is a
-deliberate design choice: it means the C++ OOP backend stays the real
-deliverable, and the browser cannot silently diverge from it.
-
-**How the two pieces connect:**
-
-1. In the console app, build a scene (create objects, set gravity/friction).
-2. Choose menu option **14: Record Simulation for Web Visualizer**.
-   This uses the new `TraceRecorder` class, which calls
-   `SimulationState::captureFrom(world)` after every single step (reusing
-   the exact same snapshot logic that already powers Save/Load), and
-   writes the whole sequence of frames to a `.json` file.
-3. Open `web/index.html` directly in any browser (double-click it — no
-   server or internet connection needed).
-4. Click **"Load trace"** and pick the `.json` file you exported.
-5. Use the transport controls (play/pause, step, scrub bar, speed) to
-   replay the run. The sidebar shows live telemetry (sim time, kinetic
-   energy, collision count) and a per-object table, recomputed per frame
-   using the same formulas as the `Statistics` class — purely for display.
-
-Two example trace files are included in `web/examples/` so you can see
-it working immediately without running the console app first:
-- `gravity_bounce_demo.json` — two circles fall under gravity and bounce
-  off the simulation floor.
-- `collision_demo.json` — two equal-mass circles collide head-on; the
-  resulting velocities (2 m/s and 8 m/s from an initial 10 m/s and 0 m/s)
-  exactly match the impulse formula in `CollisionManager`, and total
-  momentum (20 kg·m/s) is conserved before and after — a good one to
-  point at in viva as evidence the collision math is genuinely correct,
-  not just visually plausible.
-
-**Why not a "live" web app controlling the engine directly?** That would
-require the C++ program to run as a network server (sockets/HTTP), which
-is real scope creep outside your OOP syllabus and adds a lot of risk for
-a second-year team on a deadline. The trace-replay approach gets you a
-genuine, working web frontend without touching that complexity, and
-without ever duplicating the physics logic in JavaScript.
-
----
-
-## 6. Known Limitations / Future Scope (be ready to state these in viva)
-
-- Collision shapes are approximated by bounding circles — no exact
-  polygon collision for rotated rectangles/triangles.
-- No object rotation/angular velocity — only linear motion.
-- Friction is a simplified kinetic-friction model, not a full contact solver.
-- Undo history (`std::stack`) grows unbounded during a long session —
-  a capped ring buffer would be a natural improvement.
-- Only text-based file format is implemented; binary save/load was
-  identified as an optional stretch feature but not required for the
-  core deliverable.
-
-## Interactive Web Interface
-
-The project now includes an interactive browser frontend backed by the **same C++ physics engine**. The browser does not load a recorded JSON trace. The C++ engine is compiled to WebAssembly with Emscripten and JavaScript calls a small `WebAPI` facade.
-
-### Architecture
-
-```text
-Browser UI (HTML/CSS/JS)
-        |
-        v
-WebAPI.cpp (Emscripten bindings)
-        |
-        v
-PhysicsEngine -> World -> PhysicsObject / Shape / Force / Collision
-```
-
-The JSON trace recorder remains available for the original record/export feature, but it is no longer part of the interactive web workflow.
-
-### 1. Install Emscripten on macOS
-
-Install and activate the official Emscripten SDK (`emsdk`). Follow the current installation instructions at:
-
-https://emscripten.org/docs/getting_started/downloads.html
-
-After installation, activate the SDK and load its environment in the terminal. A typical setup is:
-
-```bash
-cd ~/emsdk
-./emsdk install latest
-./emsdk activate latest
-source ./emsdk_env.sh
-```
-
-You should then be able to run:
-
-```bash
-emcc --version
-```
-
-### 2. Build the C++ WebAssembly module
-
-From the project root:
+Make sure Emscripten is installed and activated.
 
 ```bash
 ./build_web.sh
 ```
 
-or:
-
-```bash
-make web
-```
-
-This creates:
-
-```text
-web/physics_engine.js
-web/physics_engine.wasm
-```
-
-### 3. Start the web server
-
-Do **not** rely on opening `index.html` with `file://` for the WASM build. Serve the `web` folder over localhost. You can do the build and server startup in one command:
+### 2. Start the local web server
 
 ```bash
 ./start_web.sh
 ```
 
-Or, manually:
+Or:
 
 ```bash
 cd web
 python3 -m http.server 8080
 ```
 
-Then open:
+### 3. Open the interface
+
+Open:
 
 ```text
 http://localhost:8080
 ```
 
-### 4. Using the interface
+---
 
-- **Add object:** create Dynamic or Static Circle, Rectangle, or Triangle objects.
-- **World settings:** change gravity, friction, and timestep.
-- **Run / Pause:** advances the actual C++ simulation continuously.
-- **Step:** advances exactly one C++ timestep.
-- **Apply impulse:** sends an impulse into the selected C++ PhysicsObject.
-- **Drag:** click and drag an object to reposition it; dragging pauses the simulation.
-- **Undo:** restores the previous state using the existing C++ history stack.
-- **Load demo:** creates a small scene through the WebAssembly API.
-- **Reset:** clears the World and resets its simulation state.
+# 🎮 Example Workflow
 
-### Console version
+A typical simulation can be created as follows:
 
-The original console program is still available:
-
-```bash
-make
-./bin/physics_engine
+```text
+1. Add a dynamic object
+        ↓
+2. Set its position
+        ↓
+3. Set velocity
+        ↓
+4. Configure gravity
+        ↓
+5. Configure friction
+        ↓
+6. Run simulation
+        ↓
+7. Observe movement
+        ↓
+8. Detect collisions
+        ↓
+9. Apply impulse
+        ↓
+10. Observe resulting motion
 ```
 
-The console and web interfaces are two different frontends over the same physics classes.
+---
+
+# 📊 Real-Time Statistics
+
+The interface provides real-time information including:
+
+- Simulation time
+- Total objects
+- Dynamic objects
+- Static objects
+- Kinetic energy
+- Collision count
+
+This makes it easier to understand the behaviour of the simulation while it is running.
+
+---
+
+# 🎯 Project Objectives
+
+The main objectives of this project are:
+
+1. Implement a functional 2D physics simulation engine.
+2. Apply Object-Oriented Programming principles in a practical system.
+3. Implement collision detection and physical interactions.
+4. Demonstrate STL and operator overloading.
+5. Implement exception and file handling.
+6. Compile the C++ engine to WebAssembly.
+7. Build an interactive browser-based interface.
+8. Visualize physics simulation in real time.
+
+---
+
+# 🔮 Future Improvements
+
+Possible future extensions include:
+
+- More advanced collision response
+- Rotational dynamics
+- Angular velocity
+- Rigid-body physics
+- Polygon collision detection
+- Spring constraints
+- Multiple friction models
+- Energy conservation analysis
+- Improved physics accuracy
+- 3D physics support
+
+---
+
+# 👨‍💻 Project
+
+**Mini Physics Engine**
+
+Developed as a **C++ Object-Oriented Programming project**.
+
+---
+
+## ⭐ Key Highlight
+
+> **The browser interface is powered by the same C++ physics engine compiled to WebAssembly, allowing the core simulation logic to run inside the browser.**
