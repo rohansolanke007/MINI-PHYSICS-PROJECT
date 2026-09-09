@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mini Physics Engine</title>
+<style>
+:root{--bg:#0b0d10;--panel:#12161c;--panel2:#171c23;--canvas:#0d1117;--line:#27303a;--text:#edf1f5;--muted:#8e99a6;--accent:#ffb454;--danger:#ff6b57;--ok:#62d39b;--blue:#79a9ff;--sans:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;overflow:hidden}button,input,select{font:inherit}button{cursor:pointer}button:disabled{cursor:not-allowed;opacity:.45}
+.app{height:100vh;display:flex;flex-direction:column}.topbar{height:62px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 18px;flex-shrink:0}.brand h1{font-size:15px;margin:0;font-weight:650}.brand p{font-size:11px;color:var(--muted);margin:3px 0 0}.status{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}.dot{width:8px;height:8px;border-radius:50%;background:var(--ok)}.dot.paused{background:var(--accent)}
+.layout{flex:1;min-height:0;display:grid;grid-template-columns:285px minmax(360px,1fr) 300px}.panel{background:var(--panel);min-width:0;overflow:auto}.left{border-right:1px solid var(--line)}.right{border-left:1px solid var(--line)}.section{padding:15px;border-bottom:1px solid var(--line)}.section h2{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:0 0 12px}.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.field{margin-bottom:9px}.field label{display:block;font-size:11px;color:var(--muted);margin-bottom:5px}.field input,.field select{width:100%;height:34px;background:#0d1116;border:1px solid var(--line);border-radius:5px;color:var(--text);padding:0 9px;outline:none}.field input:focus,.field select:focus{border-color:var(--blue);box-shadow:0 0 0 2px #79a9ff22}.toggle{display:flex;gap:6px;margin-bottom:10px}.toggle button{flex:1;height:32px;border:1px solid var(--line);background:#0d1116;color:var(--muted);border-radius:5px;font-size:12px}.toggle button.active{border-color:var(--accent);color:var(--accent);background:#ffb45412}.btn{height:34px;border:1px solid var(--line);background:#0d1116;color:var(--text);border-radius:5px;padding:0 11px;font-size:12px}.btn:hover{border-color:#53606e}.btn.primary{border-color:var(--accent);color:var(--accent);background:#ffb4540d}.btn.danger{border-color:#5c302a;color:#ff927f}.btn.full{width:100%}.hint{font-size:10px;color:var(--muted);line-height:1.45;margin-top:7px}.error{color:var(--danger);font-size:11px;line-height:1.4;margin-top:8px;min-height:15px}
+.viewport{position:relative;background:var(--canvas);min-width:0;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden}.viewport canvas{display:block;max-width:100%;max-height:100%}.canvas-overlay{position:absolute;left:14px;top:12px;display:flex;gap:7px;flex-wrap:wrap}.pill{font-size:10px;padding:5px 8px;border:1px solid var(--line);border-radius:99px;background:#0b0d10cc;color:var(--muted);backdrop-filter:blur(4px)}.pill strong{color:var(--text);font-weight:600}.empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;color:var(--muted);font-size:12px}.empty div{text-align:center;max-width:270px;line-height:1.6}.empty strong{display:block;color:var(--text);font-size:14px;margin-bottom:4px}
+.transport{height:72px;border-top:1px solid var(--line);display:flex;align-items:center;gap:9px;padding:0 15px;background:var(--panel);flex-shrink:0}.transport .main-btn{height:40px;min-width:86px}.transport .small{height:40px;width:40px;padding:0}.speed{display:flex;border:1px solid var(--line);border-radius:5px;overflow:hidden;margin-left:auto}.speed button{height:32px;border:0;border-right:1px solid var(--line);background:#0d1116;color:var(--muted);padding:0 9px;font-size:11px}.speed button:last-child{border-right:0}.speed button.active{background:var(--accent);color:#1b1204}.object-list{display:flex;flex-direction:column;gap:5px}.object-card{border:1px solid var(--line);border-radius:6px;padding:9px;background:#0d1116;text-align:left;color:var(--text);width:100%}.object-card.selected{border-color:var(--accent);background:#ffb4540a}.object-card .line{display:flex;justify-content:space-between;gap:8px;font-size:11px}.object-card .sub{color:var(--muted);font-size:10px;margin-top:3px}.badge{font-size:9px;border-radius:3px;padding:2px 5px;border:1px solid var(--line);color:var(--muted)}.badge.dynamic{color:var(--accent);border-color:#76582f}.badge.static{color:#9baabd;border-color:#46515e}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}.stat{background:#0d1116;border:1px solid var(--line);border-radius:5px;padding:9px}.stat span{display:block;color:var(--muted);font-size:10px}.stat strong{display:block;font-family:var(--mono);font-size:13px;margin-top:4px}.collision{color:var(--danger)!important}.selected-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}.selected-title strong{font-size:14px}.mono{font-family:var(--mono)}
+.footer-note{font-size:10px;color:var(--muted);padding:11px 15px;line-height:1.45}.toolbar{display:flex;gap:7px}.toolbar .btn{flex:1}
+@media(max-width:1050px){.layout{grid-template-columns:245px minmax(320px,1fr) 250px}.topbar{height:58px}}@media(max-width:800px){body{overflow:auto}.app{height:auto;min-height:100vh}.layout{grid-template-columns:1fr}.panel{border:0!important;border-bottom:1px solid var(--line)}.viewport{height:520px}.transport{position:sticky;bottom:0}.right{order:3}.left{order:1}.viewport{order:2}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header class="topbar">
+    <div class="brand"><h1>Mini Physics Engine</h1><p>Interactive C++ physics running in WebAssembly</p></div>
+    <div class="status"><span class="dot" id="statusDot"></span><span id="statusText">Loading C++ engine…</span></div>
+  </header>
+
+  <div class="layout">
+    <aside class="panel left">
+      <section class="section">
+        <h2>Create object</h2>
+        <div class="toggle" id="kindToggle"><button type="button" data-kind="dynamic" class="active">Dynamic</button><button type="button" data-kind="static">Static</button></div>
+        <div class="field"><label for="shape">Shape</label><select id="shape"><option value="circle">Circle</option><option value="rectangle">Rectangle</option><option value="triangle">Triangle</option></select></div>
+        <div class="row">
+          <div class="field"><label for="mass">Mass (kg)</label><input id="mass" type="number" step="0.1" min="0.01" value="5"></div>
+          <div class="field"><label for="posX">Position X</label><input id="posX" type="number" step="0.5" value="25"></div>
+        </div>
+        <div class="row">
+          <div class="field"><label for="posY">Position Y</label><input id="posY" type="number" step="0.5" value="45"></div>
+          <div class="field"><label for="velX">Velocity X</label><input id="velX" type="number" step="0.5" value="4"></div>
+        </div>
+        <div class="field"><label for="velY">Velocity Y</label><input id="velY" type="number" step="0.5" value="0"></div>
+        <div id="shapeFields"></div>
+        <button class="btn primary full" id="addObject" type="button">+ Add object</button>
+        <div class="error" id="createError" aria-live="polite"></div>
+      </section>
+
+      <section class="section">
+        <h2>World settings</h2>
+        <div class="row">
+          <div class="field"><label for="gravity">Gravity</label><input id="gravity" type="number" step="0.1" value="9.8"></div>
+          <div class="field"><label for="friction">Friction</label><input id="friction" type="number" step="0.01" min="0" max="1" value="0.05"></div>
+        </div>
+        <div class="field"><label for="timeStep">Time step (s)</label><input id="timeStep" type="number" step="0.01" min="0.005" max="0.2" value="0.05"></div>
+        <div class="toolbar"><button class="btn" id="applyWorld" type="button">Apply</button><button class="btn" id="disableForces" type="button">Disable forces</button></div>
+        <div class="hint">Gravity acts downward in the C++ engine. Friction uses the engine's simplified kinetic-friction model.</div>
+        <div class="error" id="worldError" aria-live="polite"></div>
+      </section>
+
+      <section class="section">
+        <h2>Quick scenes</h2>
+        <div class="toolbar"><button class="btn" id="demoScene" type="button">Load demo</button><button class="btn danger" id="resetScene" type="button">Reset</button></div>
+        <div class="hint">Demo objects are created through the same WebAssembly API as normal user-created objects.</div>
+      </section>
+    </aside>
+
+    <section class="viewport">
+      <canvas id="simCanvas" width="900" height="540" aria-label="Physics simulation canvas"></canvas>
+      <div class="canvas-overlay"><div class="pill">Time <strong id="overlayTime">0.00 s</strong></div><div class="pill">Objects <strong id="overlayObjects">0</strong></div><div class="pill">Collisions <strong id="overlayCollisions">0</strong></div></div>
+      <div class="empty" id="emptyState"><div><strong>No objects yet</strong>Add a circle, rectangle, or triangle from the left panel, then press Run.</div></div>
+    </section>
+
+    <aside class="panel right">
+      <section class="section">
+        <h2>Selected object</h2>
+        <div id="inspector"><div class="hint">Click an object in the simulation or select one below.</div></div>
+      </section>
+      <section class="section">
+        <h2>Apply impulse</h2>
+        <div class="field"><label for="forceObject">Object</label><select id="forceObject"><option value="">No dynamic objects</option></select></div>
+        <div class="row"><div class="field"><label for="forceX">Force X</label><input id="forceX" type="number" step="1" value="30"></div><div class="field"><label for="forceY">Force Y</label><input id="forceY" type="number" step="1" value="40"></div></div>
+        <button class="btn primary full" id="applyImpulse" type="button">Apply impulse</button>
+        <div class="error" id="forceError" aria-live="polite"></div>
+      </section>
+      <section class="section">
+        <h2>Live statistics</h2>
+        <div class="stats">
+          <div class="stat"><span>Simulation time</span><strong id="statTime">0.00 s</strong></div>
+          <div class="stat"><span>Total objects</span><strong id="statObjects">0</strong></div>
+          <div class="stat"><span>Dynamic</span><strong id="statDynamic">0</strong></div>
+          <div class="stat"><span>Static</span><strong id="statStatic">0</strong></div>
+          <div class="stat"><span>Kinetic energy</span><strong id="statEnergy">0.00 J</strong></div>
+          <div class="stat"><span>Total collisions</span><strong id="statCollisions">0</strong></div>
+        </div>
+      </section>
+      <section class="section">
+        <h2>Objects</h2>
+        <div class="object-list" id="objectList"></div>
+      </section>
+      <div class="footer-note">Physics calculations are performed by your C++ classes. JavaScript is responsible for controls, rendering, and presentation only.</div>
+    </aside>
+  </div>
+
+  <footer class="transport">
+    <button class="btn small" id="undo" type="button" title="Undo one simulation step">↶</button>
+    <button class="btn main-btn primary" id="runPause" type="button">▶ Run</button>
+    <button class="btn" id="step" type="button">Step</button>
+    <button class="btn" id="stop" type="button">Stop</button>
+    <div class="speed" aria-label="Simulation speed"><button type="button" data-speed="0.5">0.5×</button><button type="button" data-speed="1" class="active">1×</button><button type="button" data-speed="2">2×</button><button type="button" data-speed="4">4×</button></div>
+  </footer>
+</div>
+
+<script>
+// Emscripten calls this after the C++ WebAssembly module is ready.
+var Module = {
+  onRuntimeInitialized: function () {
+    window.dispatchEvent(new Event('physics-engine-ready'));
+  }
+};
+</script>
+<script src="physics_engine.js"></script>
+<script>
+(function(){
+  'use strict';
+  const root=document.getElementById('app');
+  let ready=false, running=false, speed=1, speedAccumulator=0, selectedId=null, kind='dynamic', state=null, dragging=null, lastFrame=0;
+  const $=id=>document.getElementById(id);
+  const num=id=>Number($(id).value);
+  const clamp=(v,min,max)=>Math.min(max,Math.max(min,v));
+  const fmt=(v,d=2)=>Number.isFinite(v)?v.toFixed(d):'—';
+  const error=(id,msg)=>$(id).textContent=msg||'';
+
+  function setReady(){ready=true;$('statusText').textContent='C++ engine ready';$('statusDot').classList.remove('paused');draw();}
+  window.addEventListener('physics-engine-ready',setReady,{once:true});
+
+  function call(fn,...args){if(!ready) throw new Error('The C++ WebAssembly engine is not ready.'); return Module[fn](...args);}
+  function readState(){if(!ready)return; try{state=JSON.parse(call('getStateJSON'));}catch(e){console.error(e);error('createError','Engine error: '+e.message);}}
+
+  function updateShapeFields(){
+    const shape=$('shape').value;
+    if(shape==='circle') $('shapeFields').innerHTML='<div class="field"><label for="radius">Radius</label><input id="radius" type="number" step="0.1" min="0.1" value="3"></div>';
+    if(shape==='rectangle') $('shapeFields').innerHTML='<div class="row"><div class="field"><label for="width">Width</label><input id="width" type="number" step="0.5" min="0.1" value="8"></div><div class="field"><label for="height">Height</label><input id="height" type="number" step="0.5" min="0.1" value="5"></div></div>';
+    if(shape==='triangle') $('shapeFields').innerHTML='<div class="row"><div class="field"><label for="base">Base</label><input id="base" type="number" step="0.5" min="0.1" value="7"></div><div class="field"><label for="height">Height</label><input id="height" type="number" step="0.5" min="0.1" value="6"></div></div>';
+  }
+
+  function createObject(){
+    error('createError','');
+    try{
+      const shape=$('shape').value, stat=kind==='static', mass=stat?1:num('mass'), x=num('posX'), y=num('posY'), vx=num('velX'), vy=num('velY');
+      if([x,y,vx,vy].some(v=>!Number.isFinite(v))) throw new Error('Position and velocity must be valid numbers.');
+      if(!stat && (!Number.isFinite(mass)||mass<=0)) throw new Error('Mass must be greater than 0 for a dynamic object.');
+      let id;
+      if(shape==='circle') id=call('createCircle',stat,mass,x,y,num('radius'),vx,vy);
+      else if(shape==='rectangle') id=call('createRectangle',stat,mass,x,y,num('width'),num('height'),vx,vy);
+      else id=call('createTriangle',stat,mass,x,y,num('base'),num('height'),vx,vy);
+      selectedId=id; readState(); render();
+    }catch(e){error('createError',e.message||String(e));}
+  }
+
+  function applyWorld(){
+    error('worldError','');
+    try{
+      const g=num('gravity'), f=num('friction'), dt=num('timeStep');
+      if(!Number.isFinite(dt)||dt<=0) throw new Error('Time step must be positive.');
+      if(dt>0.2) throw new Error('Time step is capped at 0.2 s in the UI.');
+      if(!Number.isFinite(g)||g<0) throw new Error('Gravity must be 0 or greater.');
+      if(!Number.isFinite(f)||f<0||f>1) throw new Error('Friction must be between 0 and 1.');
+      call('setTimeStep',dt); if(g===0) call('disableGravity'); else call('setGravity',g); if(f===0) call('disableFriction'); else call('setFriction',f);
+      readState(); render();
+    }catch(e){error('worldError',e.message||String(e));}
+  }
+
+  function resetScene(){if(!ready)return; call('pause');call('reset');running=false;selectedId=null;readState();render();}
+  function loadDemo(){
+    if(!ready)return; resetScene();
+    call('setGravity',9.8);call('setFriction',0.04);call('setTimeStep',0.05);
+    call('createRectangle',true,1,50,3,90,5,0,0);
+    call('createCircle',false,5,25,40,3.5,7,0);
+    call('createCircle',false,3,65,48,2.5,-5,-2);
+    call('createRectangle',false,4,50,25,9,5,-3,2);
+    selectedId=1; readState(); syncWorldInputs(); render();
+  }
+  function syncWorldInputs(){if(!state)return;$('gravity').value=state.gravityEnabled?state.gravity:'0';$('friction').value=state.frictionEnabled?state.friction:'0';$('timeStep').value=state.timeStep;}
+
+  function runPause(){if(!ready)return;if(running){call('pause');running=false;}else{call('resume');running=true;}updateRunUI();}
+  function updateRunUI(){$('runPause').textContent=running?'Ⅱ Pause':'▶ Run';$('statusText').textContent=running?'Simulation running':(ready?'Simulation paused':'Loading C++ engine…');$('statusDot').classList.toggle('paused',!running);}
+  function stepOnce(){if(!ready)return; try{call('resume');call('step',1);call('pause');readState();render();}catch(e){console.error(e);running=false;updateRunUI();}}
+  function stop(){if(!ready)return;call('pause');running=false;updateRunUI();}
+  function undo(){if(!ready)return;call('pause');running=false;call('undo');readState();render();updateRunUI();}
+
+  function applyImpulse(){error('forceError','');try{const id=Number($('forceObject').value),fx=num('forceX'),fy=num('forceY');if(!id)throw new Error('Select a dynamic object first.');if(!Number.isFinite(fx)||!Number.isFinite(fy))throw new Error('Force values must be valid numbers.');call('applyImpulse',id,fx,fy);readState();render();}catch(e){error('forceError',e.message||String(e));}}
+
+  function renderInspector(){
+    const o=state&&state.objects.find(x=>x.id===selectedId);
+    if(!o){$('inspector').innerHTML='<div class="hint">Click an object in the simulation or select one below.</div>';return;}
+    $('inspector').innerHTML=`<div class="selected-title"><strong>Object #${o.id}</strong><span class="badge ${o.kind.toLowerCase()}">${o.kind}</span></div>
+      <div class="stats"><div class="stat"><span>Shape</span><strong>${o.shape}</strong></div><div class="stat"><span>Mass</span><strong>${o.isStatic?'∞':fmt(o.mass)+' kg'}</strong></div>
+      <div class="stat"><span>Position</span><strong>${fmt(o.pos.x)}, ${fmt(o.pos.y)}</strong></div><div class="stat"><span>Velocity</span><strong>${fmt(o.vel.x)}, ${fmt(o.vel.y)}</strong></div>
+      <div class="stat"><span>Acceleration</span><strong>${fmt(o.acc.x)}, ${fmt(o.acc.y)}</strong></div><div class="stat"><span>Speed</span><strong>${fmt(Math.hypot(o.vel.x,o.vel.y))} m/s</strong></div></div>
+      <div style="height:10px"></div><button class="btn danger full" id="deleteSelected" type="button">Delete object</button>`;
+    $('deleteSelected').addEventListener('click',()=>{call('removeObject',o.id);selectedId=null;readState();render();});
+  }
+
+  function renderObjects(){
+    const list=$('objectList'), select=$('forceObject');list.innerHTML='';select.innerHTML='';
+    const dynamics=state.objects.filter(o=>o.kind==='Dynamic');
+    if(!dynamics.length) select.innerHTML='<option value="">No dynamic objects</option>';
+    dynamics.forEach(o=>{const opt=document.createElement('option');opt.value=o.id;opt.textContent=`#${o.id} · ${o.shape}`;select.appendChild(opt);});
+    if(selectedId!=null) select.value=selectedId;
+    state.objects.forEach(o=>{
+      const b=document.createElement('button');b.type='button';b.className='object-card'+(o.id===selectedId?' selected':'');b.innerHTML=`<div class="line"><strong>#${o.id} · ${o.shape}</strong><span class="badge ${o.kind.toLowerCase()}">${o.kind}</span></div><div class="sub">pos ${fmt(o.pos.x)}, ${fmt(o.pos.y)} · vel ${fmt(o.vel.x)}, ${fmt(o.vel.y)}</div>`;b.addEventListener('click',()=>{selectedId=o.id;render();});list.appendChild(b);
+    });
+  }
+
+  function resizeCanvas(){
+    const v=document.querySelector('.viewport'), rect=v.getBoundingClientRect(), aspect=100/60;let w=Math.max(300,rect.width-28),h=w/aspect;if(h>rect.height-28){h=Math.max(240,rect.height-28);w=h*aspect;}$('simCanvas').width=Math.round(w*devicePixelRatio);$('simCanvas').height=Math.round(h*devicePixelRatio);$('simCanvas').style.width=w+'px';$('simCanvas').style.height=h+'px';draw();
+  }
+  function worldToCanvas(x,y){const c=$('simCanvas'), sx=c.width/100, sy=c.height/60;return [x*sx,c.height-y*sy];}
+  function canvasToWorld(clientX,clientY){const r=$('simCanvas').getBoundingClientRect();return [clamp((clientX-r.left)/r.width*100,0,100),clamp((r.bottom-clientY)/r.height*60,0,60)];}
+  function objectAt(clientX,clientY){if(!state)return null;const [x,y]=canvasToWorld(clientX,clientY);let best=null,bestD=Infinity;for(const o of state.objects){const [cx,cy]=[o.pos.x,o.pos.y],d=Math.hypot(x-cx,y-cy);if(d<=Math.max(o.radius,3)&&d<bestD){best=o;bestD=d;}}return best;}
+
+  function draw(){
+    const c=$('simCanvas'),ctx=c.getContext('2d');if(!state){ctx.clearRect(0,0,c.width,c.height);return;}const sx=c.width/100,sy=c.height/60;
+    ctx.clearRect(0,0,c.width,c.height);ctx.fillStyle='#0d1117';ctx.fillRect(0,0,c.width,c.height);
+    ctx.strokeStyle='#182029';ctx.lineWidth=Math.max(1,devicePixelRatio);for(let x=0;x<=100;x+=10){ctx.beginPath();ctx.moveTo(x*sx,0);ctx.lineTo(x*sx,c.height);ctx.stroke();}for(let y=0;y<=60;y+=10){ctx.beginPath();ctx.moveTo(0,c.height-y*sy);ctx.lineTo(c.width,c.height-y*sy);ctx.stroke();}
+    ctx.strokeStyle='#596575';ctx.lineWidth=2*devicePixelRatio;ctx.strokeRect(1,1,c.width-2,c.height-2);
+    const colliding=new Set();state.recentCollisions.forEach(x=>{colliding.add(x.a);colliding.add(x.b);});
+    for(const o of state.objects){const [px,py]=worldToCanvas(o.pos.x,o.pos.y), color=o.kind==='Static'?'#6d7e91':'#ffb454', selected=o.id===selectedId;
+      ctx.save();ctx.translate(px,py);ctx.fillStyle=color;ctx.strokeStyle=colliding.has(o.id)?'#ff6b57':selected?'#79a9ff':'#2c3641';ctx.lineWidth=(colliding.has(o.id)?3:selected?2:1.5)*devicePixelRatio;
+      if(o.shape==='Circle'){ctx.beginPath();ctx.arc(0,0,o.radius*sx,0,Math.PI*2);ctx.fill();ctx.stroke();}
+      else if(o.shape==='Rectangle'){const w=o.shapeParams[0]*sx,h=o.shapeParams[1]*sy;ctx.beginPath();ctx.rect(-w/2,-h/2,w,h);ctx.fill();ctx.stroke();}
+      else {const w=o.shapeParams[0]*sx,h=o.shapeParams[1]*sy;ctx.beginPath();ctx.moveTo(-w/2,h/2);ctx.lineTo(w/2,h/2);ctx.lineTo(0,-h/2);ctx.closePath();ctx.fill();ctx.stroke();}
+      ctx.fillStyle='#0b0d10';ctx.font=`${Math.max(10,12*devicePixelRatio)}px ${getComputedStyle(document.body).fontFamily}`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('#'+o.id,0,0);ctx.restore();
+      if(o.kind==='Dynamic'&&(Math.abs(o.vel.x)+Math.abs(o.vel.y)>0.1)){ctx.save();ctx.strokeStyle='#79a9ff77';ctx.lineWidth=1.5*devicePixelRatio;ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(px+o.vel.x*sx*.35,py-o.vel.y*sy*.35);ctx.stroke();ctx.restore();}
+    }
+    $('emptyState').style.display=state.objects.length?'none':'flex';
+  }
+
+  function render(){if(!state)return;renderObjects();renderInspector();draw();$('statTime').textContent=fmt(state.time)+' s';$('statObjects').textContent=state.stats.objects;$('statDynamic').textContent=state.stats.dynamic;$('statStatic').textContent=state.stats.static;$('statEnergy').textContent=fmt(state.stats.kineticEnergy)+' J';$('statCollisions').textContent=state.stats.collisions;$('overlayTime').textContent=fmt(state.time)+' s';$('overlayObjects').textContent=state.stats.objects;$('overlayCollisions').textContent=state.stats.collisions;}
+
+  function tick(t){const dt=lastFrame?Math.min(.05,(t-lastFrame)/1000):0;lastFrame=t;if(ready&&running){speedAccumulator+=dt*speed*60;const steps=Math.min(8,Math.floor(speedAccumulator));if(steps>0){speedAccumulator-=steps;try{call('step',steps);readState();render();}catch(e){console.error(e);running=false;updateRunUI();}}}requestAnimationFrame(tick);}
+
+  document.querySelectorAll('#kindToggle button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#kindToggle button').forEach(x=>x.classList.remove('active'));b.classList.add('active');kind=b.dataset.kind;$('mass').disabled=kind==='static';}));
+  $('shape').addEventListener('change',updateShapeFields);$('addObject').addEventListener('click',createObject);$('applyWorld').addEventListener('click',applyWorld);$('disableForces').addEventListener('click',()=>{$('gravity').value=0;$('friction').value=0;applyWorld();});$('demoScene').addEventListener('click',loadDemo);$('resetScene').addEventListener('click',resetScene);$('runPause').addEventListener('click',runPause);$('step').addEventListener('click',stepOnce);$('stop').addEventListener('click',stop);$('undo').addEventListener('click',undo);$('applyImpulse').addEventListener('click',applyImpulse);$('forceObject').addEventListener('change',e=>{if(e.target.value)selectedId=Number(e.target.value);render();});
+  document.querySelectorAll('.speed button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.speed button').forEach(x=>x.classList.remove('active'));b.classList.add('active');speed=Number(b.dataset.speed);}));
+  const canvas=$('simCanvas');canvas.addEventListener('pointerdown',e=>{const o=objectAt(e.clientX,e.clientY);if(!o)return;selectedId=o.id;dragging={id:o.id};canvas.setPointerCapture(e.pointerId);call('pause');running=false;updateRunUI();render();});canvas.addEventListener('pointermove',e=>{if(!dragging||!ready)return;const [x,y]=canvasToWorld(e.clientX,e.clientY);try{call('setObjectPosition',dragging.id,x,y);readState();render();}catch(err){console.error(err);}});canvas.addEventListener('pointerup',e=>{dragging=null;try{canvas.releasePointerCapture(e.pointerId);}catch(_){} });canvas.addEventListener('pointercancel',()=>dragging=null);
+  window.addEventListener('resize',resizeCanvas);updateShapeFields();resizeCanvas();requestAnimationFrame(tick);
+
+  // If the generated Emscripten file is missing, give a useful local setup message.
+  setTimeout(()=>{if(!ready){$('statusText').textContent='WebAssembly build required';$('statusDot').classList.add('paused');document.querySelector('.brand p').textContent='Run the build command in README.md, then serve this folder over localhost.';}},1200);
+})();
+</script>
+</body>
+</html>
