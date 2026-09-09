@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini Physics Engine</title>
+    <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        bg: '#121214',
+                        surface: '#1c1c1f',
+                        surface2: '#27272a',
+                        border: '#3f3f46',
+                        accent: '#3b82f6',
+                        textMain: '#e4e4e7',
+                        textMuted: '#a1a1aa'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: theme('colors.bg');
+            color: theme('colors.textMain');
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        /* Scrollbar styling for a technical feel */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: theme('colors.border'); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: theme('colors.textMuted'); }
+        
+        .panel { background-color: theme('colors.surface'); border: 1px solid theme('colors.border'); }
+        .input-field { background-color: theme('colors.bg'); border: 1px solid theme('colors.border'); color: theme('colors.textMain'); }
+        .input-field:focus { outline: none; border-color: theme('colors.accent'); }
+        .btn { background-color: theme('colors.surface2'); border: 1px solid theme('colors.border'); transition: all 0.2s; }
+        .btn:hover { background-color: theme('colors.border'); }
+        .btn-primary { background-color: theme('colors.accent'); color: white; border: none; }
+        .btn-primary:hover { background-color: #2563eb; }
+        
+        canvas { background-color: #0a0a0b; cursor: crosshair; display: block; width: 100%; height: 100%; }
+        .grid-bg { background-image: linear-gradient(theme('colors.border') 1px, transparent 1px), linear-gradient(90deg, theme('colors.border') 1px, transparent 1px); background-size: 50px 50px; background-position: center; opacity: 0.1; position: absolute; inset: 0; pointer-events: none; }
+    </style>
+</head>
+<body>
+
+    <!-- TOP BAR -->
+    <header class="panel flex items-center justify-between px-4 py-2 border-b">
+        <div class="flex items-center gap-3">
+            <div class="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center">
+                <div class="w-2 h-2 rounded-full bg-white"></div>
+            </div>
+            <div>
+                <h1 class="font-bold text-sm tracking-wide">MINI PHYSICS ENGINE</h1>
+                <p class="text-[10px] text-textMuted uppercase tracking-widest">2D Simulation • OOP + STL Based</p>
+            </div>
+        </div>
+        <div class="flex gap-2">
+            <button class="btn px-3 py-1 text-xs rounded" onclick="app.setMode('presentation')">Presentation Mode</button>
+            <button class="btn px-3 py-1 text-xs rounded" onclick="app.setMode('developer')">Developer Mode</button>
+            <button class="btn px-3 py-1 text-xs rounded flex items-center gap-1" onclick="app.saveSimulation()">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+                Save
+            </button>
+            <button class="btn px-3 py-1 text-xs rounded flex items-center gap-1" onclick="app.loadSimulation()">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                Load
+            </button>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+        <!-- LEFT SIDEBAR -->
+        <aside class="panel w-64 border-r flex flex-col overflow-y-auto">
+            <div class="p-4 border-b border-border">
+                <h2 class="text-xs font-bold text-textMuted mb-3 uppercase tracking-wider">Create Object</h2>
+                <div class="space-y-2">
+                    <button class="btn w-full text-left px-3 py-2 text-sm rounded flex items-center gap-2" onclick="app.ui.showCreatePanel('Circle')">
+                        <div class="w-3 h-3 rounded-full border border-current"></div> Circle
+                    </button>
+                    <button class="btn w-full text-left px-3 py-2 text-sm rounded flex items-center gap-2" onclick="app.ui.showCreatePanel('Rectangle')">
+                        <div class="w-3 h-3 border border-current"></div> Rectangle
+                    </button>
+                    <button class="btn w-full text-left px-3 py-2 text-sm rounded flex items-center gap-2" onclick="app.ui.showCreatePanel('Triangle')">
+                        <svg class="w-3 h-3" viewBox="0 0 10 10" fill="none" stroke="currentColor"><path d="M5 1L9 9H1L5 1Z"/></svg> Triangle
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-4 border-b border-border">
+                <h2 class="text-xs font-bold text-textMuted mb-3 uppercase tracking-wider">Demo Scenarios</h2>
+                <div class="space-y-2">
+                    <button class="btn w-full text-left px-3 py-2 text-sm rounded text-blue-400" onclick="app.loadScenario('gravity')">1. Gravity Test</button>
+                    <button class="btn w-full text-left px-3 py-2 text-sm rounded text-green-400" onclick="app.loadScenario('collision')">2. Collision Test</button>
+                    <button class="btn w-full text-left px-3 py-2 text-sm rounded text-yellow-400" onclick="app.loadScenario('friction')">3. Friction Test</button>
+                    <button class="btn w-full text-left px-3 py-2 text-sm rounded text-purple-400" onclick="app.loadScenario('projectile')">4. Projectile Motion</button>
+                </div>
+            </div>
+
+            <div class="p-4 flex-1">
+                <h2 class="text-xs font-bold text-textMuted mb-3 uppercase tracking-wider">Architecture</h2>
+                <button class="btn w-full text-left px-3 py-2 text-sm rounded mb-2" onclick="app.ui.toggleArchitectureModal()">View OOP Diagram</button>
+                <div class="mt-4 text-[10px] text-textMuted space-y-1">
+                    <p>✓ Classes & Objects</p>
+                    <p>✓ Inheritance (Shape)</p>
+                    <p>✓ Polymorphism (draw)</p>
+                    <p>✓ Vector Mathematics</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- CENTER CANVAS -->
+        <main class="flex-1 relative overflow-hidden flex flex-col">
+            <div id="canvas-container" class="flex-1 relative">
+                <canvas id="sim-canvas"></canvas>
+                <div class="grid-bg"></div>
+                
+                <!-- Status Overlay -->
+                <div class="absolute top-4 left-4 font-mono text-xs text-textMuted bg-surface/80 p-2 rounded border border-border backdrop-blur">
+                    <div id="overlay-status">STATUS: PAUSED</div>
+                    <div id="overlay-time">TIME: 0.00s</div>
+                    <div id="overlay-fps">FPS: 0</div>
+                </div>
+            </div>
+
+            <!-- BOTTOM SIMULATION CONTROLS -->
+            <div class="h-16 panel border-t flex items-center justify-between px-6 shrink-0">
+                <div class="flex gap-2">
+                    <button class="btn px-4 py-2 rounded flex items-center gap-2" onclick="app.engine.reset()">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path></svg> Reset
+                    </button>
+                    <button class="btn px-4 py-2 rounded flex items-center gap-2" id="btn-play" onclick="app.togglePlay()">
+                        <svg class="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg> Play
+                    </button>
+                    <button class="btn px-4 py-2 rounded flex items-center gap-2" onclick="app.engine.step()">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path></svg> Step
+                    </button>
+                </div>
+                
+                <div class="font-mono text-xs flex gap-6 text-textMuted">
+                    <div>Objects: <span id="stat-objects" class="text-textMain">0</span></div>
+                    <div>Collisions: <span id="stat-collisions" class="text-textMain">0</span></div>
+                    <div>Time Step: <span class="text-textMain">16ms</span></div>
+                </div>
+            </div>
+        </main>
+
+        <!-- RIGHT SIDEBAR (INSPECTOR & SETTINGS) -->
+        <aside class="panel w-72 border-l flex flex-col overflow-hidden text-sm">
+            
+            <!-- Tabs -->
+            <div class="flex border-b border-border shrink-0">
+                <button class="flex-1 py-2 text-center text-xs font-medium border-b-2 border-accent text-accent" id="tab-inspector">Inspector</button>
+                <button class="flex-1 py-2 text-center text-xs font-medium text-textMuted" id="tab-settings" onclick="app.ui.switchTab('settings')">Settings</button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-4" id="panel-inspector">
+                <div id="empty-inspector" class="text-center text-textMuted py-10">
+                    <svg class="w-8 h-8 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path></svg>
+                    Select an object on the canvas
+                </div>
+
+                <div id="active-inspector" class="hidden space-y-4">
+                    <div class="border-b border-border pb-3">
+                        <div class="text-xs text-textMuted uppercase">Object ID</div>
+                        <div class="font-mono text-lg font-bold" id="insp-id">#101</div>
+                        <div class="text-xs text-accent mt-1" id="insp-type">Circle</div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <div class="flex justify-between">
+                            <span class="text-textMuted">Mass:</span>
+                            <span class="font-mono" id="insp-mass">2.0 kg</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-textMuted">Position:</span>
+                            <span class="font-mono" id="insp-pos">X: 10.0 Y: 20.0</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-textMuted">Velocity:</span>
+                            <span class="font-mono" id="insp-vel">X: 0.0 Y: 0.0</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-textMuted">Acceleration:</span>
+                            <span class="font-mono" id="insp-acc">X: 0.0 Y: 0.0</span>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-border pt-3">
+                        <h3 class="text-xs font-bold text-textMuted uppercase mb-2">Apply Force</h3>
+                        <div class="flex gap-2 mb-2">
+                            <input type="number" id="force-x" class="input-field rounded px-2 py-1 w-full text-xs font-mono" placeholder="Fx (N)">
+                            <input type="number" id="force-y" class="input-field rounded px-2 py-1 w-full text-xs font-mono" placeholder="Fy (N)">
+                        </div>
+                        <button class="btn w-full py-1 text-xs rounded" onclick="app.applyForceToSelected()">Apply Force</button>
+                    </div>
+                    
+                    <div class="border-t border-border pt-3">
+                        <button class="btn w-full py-1 text-xs rounded text-red-400 hover:bg-red-900/20" onclick="app.deleteSelected()">Delete Object</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Global Settings (Hidden by default) -->
+            <div class="flex-1 overflow-y-auto p-4 hidden" id="panel-settings">
+                <h3 class="text-xs font-bold text-textMuted uppercase mb-3">Global Physics</h3>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="flex items-center justify-between text-sm mb-1">
+                            Gravity Y (m/s²)
+                        </label>
+                        <input type="number" id="set-gravity" value="9.81" class="input-field rounded px-2 py-1 w-full font-mono text-sm" onchange="app.updateSettings()">
+                    </div>
+                    <div>
+                        <label class="flex items-center justify-between text-sm mb-1">
+                            Friction Coefficient (μ)
+                        </label>
+                        <input type="number" id="set-friction" value="0.1" step="0.05" class="input-field rounded px-2 py-1 w-full font-mono text-sm" onchange="app.updateSettings()">
+                    </div>
+                    <div>
+                        <label class="flex items-center gap-2 text-sm cursor-pointer">
+                            <input type="checkbox" id="set-bounds" checked class="accent-blue-500" onchange="app.updateSettings()">
+                            Enable World Boundaries
+                        </label>
+                    </div>
+                    <div>
+                        <label class="flex items-center gap-2 text-sm cursor-pointer">
+                            <input type="checkbox" id="set-collisions" checked class="accent-blue-500" onchange="app.updateSettings()">
+                            Enable Collisions
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="border-t border-border mt-6 pt-4">
+                    <h3 class="text-xs font-bold text-textMuted uppercase mb-3">Event Log</h3>
+                    <div id="event-log" class="font-mono text-[10px] text-textMuted h-32 overflow-y-auto space-y-1">
+                        <div>[0.00s] Engine initialized.</div>
+                    </div>
+                </div>
+            </div>
+
+        </aside>
+    </div>
+
+    <!-- Modals (Hidden) -->
+    <!-- Create Object Modal -->
+    <div id="modal-create" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50">
+        <div class="panel w-80 rounded-lg shadow-2xl p-5">
+            <h2 class="text-lg font-bold mb-4" id="create-title">Create Circle</h2>
+            <div class="space-y-3 text-sm">
+                <div class="flex gap-2">
+                    <div class="flex-1">
+                        <label class="block text-xs text-textMuted mb-1">Mass (kg)</label>
+                        <input type="number" id="create-mass" value="2.0" class="input-field rounded px-2 py-1 w-full font-mono">
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-xs text-textMuted mb-1">Size (m)</label>
+                        <input type="number" id="create-size" value="10" class="input-field rounded px-2 py-1 w-full font-mono">
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <div class="flex-1">
+                        <label class="block text-xs text-textMuted mb-1">Pos X (m)</label>
+                        <input type="number" id="create-x" value="20" class="input-field rounded px-2 py-1 w-full font-mono">
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-xs text-textMuted mb-1">Pos Y (m)</label>
+                        <input type="number" id="create-y" value="20" class="input-field rounded px-2 py-1 w-full font-mono">
+                    </div>
+                </div>
+                <div class="flex justify-end gap-2 mt-4 pt-4 border-t border-border">
+                    <button class="btn px-4 py-1 rounded" onclick="document.getElementById('modal-create').classList.remove('flex'); document.getElementById('modal-create').classList.add('hidden');">Cancel</button>
+                    <button class="btn-primary px-4 py-1 rounded" onclick="app.ui.confirmCreateObject()">Create</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Architecture Modal -->
+    <div id="modal-arch" class="fixed inset-0 bg-black/80 backdrop-blur hidden items-center justify-center z-50" onclick="this.classList.replace('flex', 'hidden')">
+        <div class="bg-surface p-8 rounded-xl max-w-3xl w-full border border-border m-4 shadow-2xl" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold">OOP Architecture</h2>
+                <button class="text-textMuted hover:text-white" onclick="document.getElementById('modal-arch').classList.replace('flex', 'hidden')">✕</button>
+            </div>
+            
+            <div class="font-mono text-sm bg-bg p-6 rounded border border-border overflow-x-auto text-green-400">
+<pre>
+class PhysicsEngine {
+    std::vector&lt;PhysicsObject*&gt; objects;
+    Vector2D gravity;
+    void step(float dt);
+}
+
+abstract class Shape {
+    virtual void draw() = 0;
+}
+class Circle : public Shape { float radius; }
+class Rectangle : public Shape { float w, h; }
+
+class PhysicsObject {
+    Shape* shape;
+    Vector2D pos, vel, acc;
+    float mass;
+    std::vector&lt;Force*&gt; forces;
+    void applyForce(Force* f);
+    void update(float dt);
+}
+</pre>
+            </div>
+            <p class="mt-4 text-sm text-textMuted">This interface simulates the underlying C++ OOP architecture in TypeScript/JavaScript, demonstrating concepts like inheritance (Shape), polymorphism (draw methods), and vector mathematics.</p>
+        </div>
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- PHYSICS ENGINE CORE (ES6 Vanilla JS OOP)   -->
+    <!-- ========================================== -->
+    <script>
+        // --- Vector Math ---
+        class Vector2D {
+            constructor(x = 0, y = 0) { this.x = x; this.y = y; }
+            add(v) { return new Vector2D(this.x + v.x, this.y + v.y); }
+            sub(v) { return new Vector2D(this.x - v.x, this.y - v.y); }
+            mult(scalar) { return new Vector2D(this.x * scalar, this.y * scalar); }
+            mag() { return Math.sqrt(this.x * this.x + this.y * this.y); }
+            normalize() { let m = this.mag(); return m === 0 ? new Vector2D() : new Vector2D(this.x / m, this.y / m); }
+            dot(v) { return this.x * v.x + this.y * v.y; }
+            clone() { return new Vector2D(this.x, this.y); }
+        }
+
+        // --- Shapes (Inheritance & Polymorphism) ---
+        class Shape {
+            constructor(type) { this.type = type; }
+            draw(ctx, x, y, isSelected) {}
+        }
+        class Circle extends Shape {
+            constructor(radius) { super('Circle'); this.radius = radius; }
+            draw(ctx, x, y, isSelected) {
+                ctx.beginPath();
+                ctx.arc(x, y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.lineWidth = isSelected ? 3 : 1;
+                ctx.strokeStyle = isSelected ? '#ffffff' : '#3b82f6';
+                ctx.stroke();
+            }
+        }
+        class Rectangle extends Shape {
+            constructor(w, h) { super('Rectangle'); this.w = w; this.h = h; }
+            draw(ctx, x, y, isSelected) {
+                ctx.beginPath();
+                ctx.rect(x - this.w/2, y - this.h/2, this.w, this.h);
+                ctx.fill();
+                ctx.lineWidth = isSelected ? 3 : 1;
+                ctx.strokeStyle = isSelected ? '#ffffff' : '#10b981';
+                ctx.stroke();
+            }
+        }
+        class Triangle extends Shape {
+            constructor(size) { super('Triangle'); this.size = size; }
+            draw(ctx, x, y, isSelected) {
+                ctx.beginPath();
+                let h = this.size * Math.sqrt(3)/2;
+                ctx.moveTo(x, y - h/2);
+                ctx.lineTo(x + this.size/2, y + h/2);
+                ctx.lineTo(x - this.size/2, y + h/2);
+                ctx.closePath();
+                ctx.fill();
+                ctx.lineWidth = isSelected ? 3 : 1;
+                ctx.strokeStyle = isSelected ? '#ffffff' : '#f59e0b';
+                ctx.stroke();
+            }
+        }
+
+        // --- Forces ---
+        class Force {
+            constructor(name) { this.name = name; }
+            getVector(object) { return new Vector2D(); }
+        }
+        class GravityForce extends Force {
+            constructor(gVec) { super('Gravity'); this.g = gVec; }
+            getVector(object) { return this.g.mult(object.mass); } // F = mg
+        }
+        class FrictionForce extends Force {
+            constructor(mu) { super('Friction'); this.mu = mu; }
+            getVector(object) {
+                if (object.vel.mag() < 0.1) return new Vector2D();
+                let dir = object.vel.normalize().mult(-1);
+                // F_friction = mu * N (assuming flat surface approx for demo)
+                return dir.mult(this.mu * object.mass * 9.81 * 50); 
+            }
+        }
+        class AppliedForce extends Force {
+            constructor(vec) { super('Applied'); this.vec = vec; }
+            getVector(object) { return this.vec; }
+        }
+
+        // --- Physics Object ---
+        class PhysicsObject {
+            constructor(id, shape, mass, pos, color = '#3b82f6') {
+                this.id = id;
+                this.shape = shape;
+                this.mass = mass;
+                this.invMass = mass === 0 ? 0 : 1 / mass;
+                this.pos = pos;
+                this.vel = new Vector2D();
+                this.acc = new Vector2D();
+                this.forces = [];
+                this.restitution = 0.7; // Bounciness
+                this.color = color;
+            }
+            
+            applyForce(force) { this.forces.push(force); }
+            clearForces() { this.forces = []; this.acc = new Vector2D(); }
+            
+            update(dt) {
+                if (this.invMass === 0) return; // Static object
+                
+                let totalForce = new Vector2D();
+                for (let f of this.forces) totalForce = totalForce.add(f.getVector(this));
+                
+                this.acc = totalForce.mult(this.invMass);
+                this.vel = this.vel.add(this.acc.mult(dt));
+                this.pos = this.pos.add(this.vel.mult(dt));
+            }
+        }
+
+        // --- Collision Manager ---
+        class CollisionManager {
+            static checkBoundary(obj, w, h, restitution) {
+                let r = 0;
+                if (obj.shape.type === 'Circle') r = obj.shape.radius;
+                else if (obj.shape.type === 'Rectangle') r = Math.max(obj.shape.w, obj.shape.h)/2;
+                else if (obj.shape.type === 'Triangle') r = obj.shape.size/2;
+
+                let collided = false;
+                if (obj.pos.x - r < 0) { obj.pos.x = r; obj.vel.x *= -restitution; collided = true; }
+                if (obj.pos.x + r > w) { obj.pos.x = w - r; obj.vel.x *= -restitution; collided = true; }
+                if (obj.pos.y - r < 0) { obj.pos.y = r; obj.vel.y *= -restitution; collided = true; }
+                if (obj.pos.y + r > h) { obj.pos.y = h - r; obj.vel.y *= -restitution; collided = true; }
+                return collided;
+            }
+
+            // Simple Circle-Circle collision for demo purposes
+            static resolveCollision(a, b) {
+                if(a.shape.type !== 'Circle' || b.shape.type !== 'Circle') return false;
+                
+                let distVec = a.pos.sub(b.pos);
+                let dist = distVec.mag();
+                let minDist = a.shape.radius + b.shape.radius;
+
+                if (dist < minDist) {
+                    let n = distVec.normalize();
+                    let overlap = minDist - dist;
+                    
+                    // Positional correction
+                    let totalInvMass = a.invMass + b.invMass;
+                    if(totalInvMass > 0) {
+                        let correction = overlap / totalInvMass;
+                        a.pos = a.pos.add(n.mult(correction * a.invMass));
+                        b.pos = b.pos.sub(n.mult(correction * b.invMass));
+                    }
+
+                    // Velocity correction
+                    let relVel = a.vel.sub(b.vel);
+                    let velAlongNormal = relVel.dot(n);
+                    
+                    if (velAlongNormal < 0) {
+                        let e = Math.min(a.restitution, b.restitution);
+                        let j = -(1 + e) * velAlongNormal / totalInvMass;
+                        let impulse = n.mult(j);
+                        a.vel = a.vel.add(impulse.mult(a.invMass));
+                        b.vel = b.vel.sub(impulse.mult(b.invMass));
+                    }
+                    return true;
+                }
+                return false;
+            }
+        }
+
+        // --- Main Engine ---
+        class PhysicsEngine {
+            constructor() {
+                this.objects = [];
+                this.gravity = new Vector2D(0, 98.1); // Scaled for pixels
+                this.friction = 0.1;
+                this.time = 0;
+                this.timeStep = 0.016; // 60fps
+                this.bounds = { w: 800, h: 600 };
+                this.enableCollisions = true;
+                this.enableBounds = true;
+                this.nextId = 101;
+                this.stats = { collisions: 0 };
+            }
+
+            addObject(obj) { this.objects.push(obj); }
+            removeObject(id) { this.objects = this.objects.filter(o => o.id !== id); }
+            
+            step() {
+                this.time += this.timeStep;
+                let gravForce = new GravityForce(this.gravity);
+                let fricForce = new FrictionForce(this.friction);
+
+                // Update physics
+                for (let obj of this.objects) {
+                    obj.clearForces();
+                    obj.applyForce(gravForce);
+                    obj.applyForce(fricForce);
+                    obj.update(this.timeStep);
+                    
+                    if (this.enableBounds) {
+                        if(CollisionManager.checkBoundary(obj, this.bounds.w, this.bounds.h, obj.restitution)) {
+                            app.log(`[${this.time.toFixed(2)}s] #${obj.id} hit boundary`);
+                        }
+                    }
+                }
+
+                // Check Collisions (O(n^2) loop)
+                if (this.enableCollisions) {
+                    for (let i = 0; i < this.objects.length; i++) {
+                        for (let j = i + 1; j < this.objects.length; j++) {
+                            if (CollisionManager.resolveCollision(this.objects[i], this.objects[j])) {
+                                this.stats.collisions++;
+                                app.log(`[${this.time.toFixed(2)}s] Collision #${this.objects[i].id} ↔ #${this.objects[j].id}`);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            reset() {
+                this.time = 0;
+                this.objects = [];
+                this.stats.collisions = 0;
+            }
+        }
+
+
+        // ==========================================
+        // UI & APP CONTROLLER
+        // ==========================================
+        class App {
+            constructor() {
+                this.engine = new PhysicsEngine();
+                this.canvas = document.getElementById('sim-canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.running = false;
+                this.selectedObjId = null;
+                this.devMode = false;
+                
+                // Animation frame ID
+                this.reqId = null;
+                this.lastTime = performance.now();
+                this.fps = 0;
+
+                this.setupResize();
+                this.setupMouseEvents();
+                
+                this.ui = {
+                    pendingType: null,
+                    showCreatePanel: (type) => {
+                        this.ui.pendingType = type;
+                        document.getElementById('create-title').innerText = `Create ${type}`;
+                        document.getElementById('modal-create').classList.replace('hidden', 'flex');
+                    },
+                    confirmCreateObject: () => {
+                        let m = parseFloat(document.getElementById('create-mass').value) || 1;
+                        let s = parseFloat(document.getElementById('create-size').value) || 20;
+                        let x = parseFloat(document.getElementById('create-x').value) || this.engine.bounds.w/2;
+                        let y = parseFloat(document.getElementById('create-y').value) || this.engine.bounds.h/2;
+                        
+                        let shape;
+                        let color = '#3b82f6';
+                        if (this.ui.pendingType === 'Circle') shape = new Circle(s);
+                        else if (this.ui.pendingType === 'Rectangle') { shape = new Rectangle(s*1.5, s); color = '#10b981'; }
+                        else if (this.ui.pendingType === 'Triangle') { shape = new Triangle(s*2); color = '#f59e0b'; }
+                        
+                        let obj = new PhysicsObject(this.engine.nextId++, shape, m, new Vector2D(x, y), color);
+                        this.engine.addObject(obj);
+                        this.log(`Created ${this.ui.pendingType} #${obj.id}`);
+                        
+                        document.getElementById('modal-create').classList.replace('flex', 'hidden');
+                        this.updateInspector();
+                        this.draw();
+                    },
+                    switchTab: (tab) => {
+                        document.getElementById('tab-inspector').className = tab === 'inspector' ? 'flex-1 py-2 text-center text-xs font-medium border-b-2 border-accent text-accent' : 'flex-1 py-2 text-center text-xs font-medium text-textMuted';
+                        document.getElementById('tab-settings').className = tab === 'settings' ? 'flex-1 py-2 text-center text-xs font-medium border-b-2 border-accent text-accent' : 'flex-1 py-2 text-center text-xs font-medium text-textMuted';
+                        document.getElementById('panel-inspector').style.display = tab === 'inspector' ? 'block' : 'none';
+                        document.getElementById('panel-settings').style.display = tab === 'settings' ? 'block' : 'none';
+                    },
+                    toggleArchitectureModal: () => {
+                        document.getElementById('modal-arch').classList.replace('hidden', 'flex');
+                    }
+                };
+
+                document.getElementById('tab-inspector').onclick = () => this.ui.switchTab('inspector');
+                
+                // Init demo
+                this.loadScenario('gravity');
+                this.loop = this.loop.bind(this);
+                this.reqId = requestAnimationFrame(this.loop);
+            }
+
+            setupResize() {
+                const container = document.getElementById('canvas-container');
+                const resize = () => {
+                    this.canvas.width = container.clientWidth;
+                    this.canvas.height = container.clientHeight;
+                    this.engine.bounds = { w: this.canvas.width, h: this.canvas.height };
+                    this.draw();
+                };
+                window.addEventListener('resize', resize);
+                resize();
+            }
+
+            setupMouseEvents() {
+                this.canvas.addEventListener('mousedown', (e) => {
+                    const rect = this.canvas.getBoundingClientRect();
+                    const mx = e.clientX - rect.left;
+                    const my = e.clientY - rect.top;
+                    
+                    // Simple selection logic
+                    this.selectedObjId = null;
+                    for (let obj of this.engine.objects) {
+                        let r = 20; // Hitbox approx
+                        if (obj.shape.type === 'Circle') r = obj.shape.radius;
+                        if (Math.hypot(obj.pos.x - mx, obj.pos.y - my) < r + 5) {
+                            this.selectedObjId = obj.id;
+                            this.ui.switchTab('inspector');
+                            break;
+                        }
+                    }
+                    this.updateInspector();
+                    this.draw();
+                });
+            }
+
+            togglePlay() {
+                this.running = !this.running;
+                const btn = document.getElementById('btn-play');
+                if(this.running) {
+                    btn.innerHTML = `<svg class="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path></svg> Pause`;
+                    document.getElementById('overlay-status').innerText = 'STATUS: RUNNING';
+                } else {
+                    btn.innerHTML = `<svg class="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg> Play`;
+                    document.getElementById('overlay-status').innerText = 'STATUS: PAUSED';
+                }
+            }
+
+            setMode(mode) {
+                this.devMode = mode === 'developer';
+                alert(mode === 'developer' ? "Developer Mode Enabled: Vectors and IDs will be shown." : "Presentation Mode Enabled: Clean UI.");
+                this.draw();
+            }
+
+            applyForceToSelected() {
+                if(!this.selectedObjId) return;
+                const obj = this.engine.objects.find(o => o.id === this.selectedObjId);
+                if(obj) {
+                    let fx = parseFloat(document.getElementById('force-x').value) || 0;
+                    let fy = parseFloat(document.getElementById('force-y').value) || 0;
+                    // Apply as instantaneous velocity impulse for visual demo
+                    obj.vel = obj.vel.add(new Vector2D(fx*10, fy*10).mult(obj.invMass));
+                    this.log(`Applied Force [${fx}, ${fy}] to #${obj.id}`);
+                }
+            }
+
+            deleteSelected() {
+                if(!this.selectedObjId) return;
+                this.engine.removeObject(this.selectedObjId);
+                this.selectedObjId = null;
+                this.updateInspector();
+                this.draw();
+            }
+
+            updateSettings() {
+                this.engine.gravity.y = parseFloat(document.getElementById('set-gravity').value) * 10 || 0;
+                this.engine.friction = parseFloat(document.getElementById('set-friction').value) || 0;
+                this.engine.enableBounds = document.getElementById('set-bounds').checked;
+                this.engine.enableCollisions = document.getElementById('set-collisions').checked;
+            }
+
+            log(msg) {
+                const logEl = document.getElementById('event-log');
+                const div = document.createElement('div');
+                div.innerText = msg;
+                logEl.prepend(div);
+                if(logEl.children.length > 20) logEl.lastChild.remove();
+            }
+
+            loadScenario(type) {
+                this.engine.reset();
+                this.selectedObjId = null;
+                this.updateInspector();
+                
+                let cx = this.engine.bounds.w / 2;
+                let h = this.engine.bounds.h;
+                
+                if (type === 'gravity') {
+                    this.engine.addObject(new PhysicsObject(101, new Circle(20), 2, new Vector2D(cx - 100, 100), '#3b82f6'));
+                    this.engine.addObject(new PhysicsObject(102, new Rectangle(40, 40), 5, new Vector2D(cx, 150), '#10b981'));
+                    this.engine.addObject(new PhysicsObject(103, new Triangle(40), 3, new Vector2D(cx + 100, 200), '#f59e0b'));
+                    this.log("Loaded Scenario: Gravity Test");
+                } 
+                else if (type === 'collision') {
+                    let o1 = new PhysicsObject(101, new Circle(30), 5, new Vector2D(100, h/2));
+                    o1.vel = new Vector2D(400, 0);
+                    let o2 = new PhysicsObject(102, new Circle(30), 5, new Vector2D(this.engine.bounds.w - 100, h/2));
+                    o2.vel = new Vector2D(-400, 0);
+                    this.engine.addObject(o1);
+                    this.engine.addObject(o2);
+                    this.engine.gravity.y = 0; // Turn off gravity for collision demo
+                    document.getElementById('set-gravity').value = 0;
+                    this.log("Loaded Scenario: Elastic Collision");
+                }
+                else if (type === 'projectile') {
+                    let o = new PhysicsObject(101, new Circle(15), 1, new Vector2D(50, h - 50));
+                    o.vel = new Vector2D(500, -800);
+                    this.engine.addObject(o);
+                    this.engine.gravity.y = 98.1;
+                    document.getElementById('set-gravity').value = 9.81;
+                    this.log("Loaded Scenario: Projectile Motion");
+                }
+                
+                this.draw();
+            }
+
+            saveSimulation() {
+                alert("Simulation State Saved (Demo)");
+            }
+            loadSimulation() {
+                alert("Loading previous simulation state...");
+            }
+
+            updateInspector() {
+                const empty = document.getElementById('empty-inspector');
+                const active = document.getElementById('active-inspector');
+                const obj = this.engine.objects.find(o => o.id === this.selectedObjId);
+                
+                if (obj) {
+                    empty.classList.add('hidden');
+                    active.classList.remove('hidden');
+                    document.getElementById('insp-id').innerText = `#${obj.id}`;
+                    document.getElementById('insp-type').innerText = obj.shape.type;
+                    document.getElementById('insp-mass').innerText = `${obj.mass.toFixed(2)} kg`;
+                    document.getElementById('insp-pos').innerText = `X: ${obj.pos.x.toFixed(1)} Y: ${obj.pos.y.toFixed(1)}`;
+                    document.getElementById('insp-vel').innerText = `X: ${obj.vel.x.toFixed(1)} Y: ${obj.vel.y.toFixed(1)}`;
+                    document.getElementById('insp-acc').innerText = `X: ${obj.acc.x.toFixed(1)} Y: ${obj.acc.y.toFixed(1)}`;
+                } else {
+                    empty.classList.remove('hidden');
+                    active.classList.add('hidden');
+                }
+            }
+
+            updateStats() {
+                document.getElementById('stat-objects').innerText = this.engine.objects.length;
+                document.getElementById('stat-collisions').innerText = this.engine.stats.collisions;
+                document.getElementById('overlay-time').innerText = `TIME: ${this.engine.time.toFixed(2)}s`;
+                document.getElementById('overlay-fps').innerText = `FPS: ${Math.round(this.fps)}`;
+            }
+
+            draw() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Draw objects
+                for (let obj of this.engine.objects) {
+                    this.ctx.fillStyle = obj.color + '40'; // Transparent fill
+                    let isSelected = obj.id === this.selectedObjId;
+                    
+                    obj.shape.draw(this.ctx, obj.pos.x, obj.pos.y, isSelected);
+                    
+                    // Draw IDs if dev mode
+                    if (this.devMode || isSelected) {
+                        this.ctx.fillStyle = '#ffffff';
+                        this.ctx.font = '10px monospace';
+                        this.ctx.fillText(`#${obj.id}`, obj.pos.x + 15, obj.pos.y - 15);
+                        
+                        // Draw Velocity Vector
+                        if(obj.vel.mag() > 1) {
+                            this.ctx.beginPath();
+                            this.ctx.moveTo(obj.pos.x, obj.pos.y);
+                            this.ctx.lineTo(obj.pos.x + obj.vel.x * 0.2, obj.pos.y + obj.vel.y * 0.2);
+                            this.ctx.strokeStyle = '#ef4444'; // Red for velocity
+                            this.ctx.lineWidth = 1;
+                            this.ctx.stroke();
+                        }
+                    }
+                }
+            }
+
+            loop(now) {
+                // Calculate FPS
+                let dt = now - this.lastTime;
+                this.lastTime = now;
+                if(dt > 0) this.fps = 1000 / dt;
+
+                if (this.running) {
+                    // Update physics multiple small steps for stability
+                    this.engine.step();
+                    this.updateInspector();
+                    this.draw();
+                }
+                
+                this.updateStats();
+                this.reqId = requestAnimationFrame(this.loop);
+            }
+        }
+
+        // Initialize application
+        window.onload = () => {
+            window.app = new App();
+        };
+
+    </script>
+</body>
+</html>
