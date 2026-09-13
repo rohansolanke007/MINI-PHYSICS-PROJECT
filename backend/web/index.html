@@ -1,0 +1,809 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Physics Engine Laboratory</title>
+<style>
+:root {
+  --bg: #06080b; --surface: #0c1016; --surface-border: #1a222e; --panel-bg: rgba(12, 16, 22, 0.95);
+  --text: #f4f7fb; --text-muted: #8c98a8;
+  --accent-amber: #ffb454; --accent-blue: #74a7ff; --accent-green: #69d39b; --accent-red: #ff6b57;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg); color: var(--text); font-family: var(--font-sans);
+  height: 100vh; overflow: hidden; display: flex; flex-direction: column;
+}
+button, input, select { font: inherit; outline: none; }
+button { cursor: pointer; border: none; background: none; }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* LAYOUT: Top Nav + 3-Column Grid */
+.navbar {
+  height: 60px; border-bottom: 1px solid var(--surface-border); display: flex;
+  align-items: center; justify-content: space-between; padding: 0 24px; background: var(--surface);
+}
+.brand { display: flex; align-items: center; gap: 12px; }
+.mark { width: 32px; height: 32px; border-radius: 8px; background: rgba(255,180,84,0.1); border: 1px solid rgba(255,180,84,0.3); color: var(--accent-amber); display: grid; place-items: center; font-weight: bold; }
+.nav-modes { display: flex; background: rgba(255,255,255,0.05); border-radius: 8px; padding: 4px; }
+.nav-modes button { padding: 6px 16px; font-size: 12px; font-weight: 600; color: var(--text-muted); border-radius: 6px; transition: all 0.2s; }
+.nav-modes button.active { background: var(--surface-border); color: var(--text); }
+.telemetry-bar { display: flex; gap: 16px; font-size: 11px; font-family: var(--font-mono); color: var(--text-muted); }
+
+.app-grid {
+  display: grid; grid-template-columns: 300px 1fr 300px; grid-template-rows: 1fr 70px;
+  flex: 1; overflow: hidden; gap: 16px; padding: 16px;
+}
+
+/* PANELS */
+.panel {
+  background: var(--panel-bg); border: 1px solid var(--surface-border); border-radius: 12px;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.panel-header {
+  padding: 14px 16px; border-bottom: 1px solid var(--surface-border); font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+}
+.panel-content { padding: 16px; overflow-y: auto; flex: 1; }
+
+/* CANVAS CONTAINER */
+.canvas-container {
+  grid-column: 2; grid-row: 1; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08);
+  background: #04070a; position: relative; overflow: hidden; display: flex;
+}
+canvas { flex: 1; width: 100%; height: 100%; touch-action: none; }
+
+/* BOTTOM TRANSPORT */
+.transport-bar {
+  grid-column: 2; grid-row: 2; border-radius: 12px; border: 1px solid var(--surface-border);
+  background: var(--panel-bg); display: flex; align-items: center; justify-content: space-between; padding: 0 16px;
+}
+.t-controls { display: flex; gap: 8px; }
+.btn { padding: 8px 14px; border-radius: 6px; border: 1px solid var(--surface-border); background: rgba(255,255,255,0.03); color: var(--text); font-size: 11px; font-weight: 600; }
+.btn:hover { background: rgba(255,255,255,0.08); }
+.btn.primary { background: rgba(255,180,84,0.1); border-color: rgba(255,180,84,0.3); color: var(--accent-amber); }
+.btn.primary:hover { background: rgba(255,180,84,0.2); }
+
+/* FORMS & UI ELEMENTS */
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; font-size: 10px; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+.input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+input, select {
+  width: 100%; padding: 8px; background: rgba(0,0,0,0.5); border: 1px solid var(--surface-border);
+  border-radius: 6px; color: var(--text); font-family: var(--font-mono); font-size: 12px;
+}
+input:focus, select:focus { border-color: var(--accent-blue); }
+.segmented-control { display: flex; gap: 4px; margin-bottom: 12px; }
+.segmented-control button { flex: 1; padding: 6px; font-size: 11px; border: 1px solid var(--surface-border); border-radius: 6px; background: rgba(0,0,0,0.5); color: var(--text-muted); }
+.segmented-control button.active { background: rgba(255,255,255,0.1); color: var(--text); }
+
+/* LAWS LAB SPECIFIC */
+.experiment-btn {
+  display: block; width: 100%; text-align: left; padding: 12px; margin-bottom: 8px;
+  border-radius: 8px; border: 1px solid var(--surface-border); background: rgba(0,0,0,0.3); transition: 0.2s;
+}
+.experiment-btn:hover { border-color: var(--accent-blue); background: rgba(116, 167, 255, 0.05); }
+.experiment-btn.active { border-color: var(--accent-amber); background: rgba(255, 180, 84, 0.08); }
+.experiment-btn strong { display: block; font-size: 12px; margin-bottom: 4px; }
+.experiment-btn span { display: block; font-size: 10px; color: var(--text-muted); line-height: 1.4; }
+
+.equation-box {
+  padding: 12px; border-radius: 8px; background: rgba(116, 167, 255, 0.1); border: 1px dashed rgba(116, 167, 255, 0.3);
+  margin-bottom: 16px; text-align: center; font-family: var(--font-mono); font-size: 14px; color: var(--accent-blue);
+}
+.metric-box {
+  padding: 10px; background: rgba(0,0,0,0.5); border: 1px solid var(--surface-border); border-radius: 6px; margin-bottom: 8px;
+}
+.metric-box small { display: block; font-size: 9px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px; }
+.metric-box div { font-family: var(--font-mono); font-size: 13px; font-weight: bold; }
+
+/* INSPECTOR & LISTS */
+.obj-item {
+  padding: 10px; border: 1px solid transparent; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; cursor: pointer;
+}
+.obj-item:hover { background: rgba(255,255,255,0.02); }
+.obj-item.selected { border-color: var(--surface-border); background: rgba(255,180,84,0.05); }
+.obj-ident { font-size: 12px; font-weight: 600; }
+.obj-type { font-size: 10px; color: var(--text-muted); font-family: var(--font-mono); }
+.badge { padding: 2px 6px; border-radius: 4px; font-size: 9px; border: 1px solid var(--surface-border); }
+
+/* UTIL */
+.hidden { display: none !important; }
+.toast {
+  position: absolute; top: 80px; left: 50%; transform: translateX(-50%);
+  background: var(--text); color: var(--bg); padding: 8px 16px; border-radius: 20px;
+  font-size: 12px; font-weight: 600; opacity: 0; pointer-events: none; transition: 0.3s; z-index: 100;
+}
+.toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="navbar">
+  <div class="brand">
+    <div class="mark">∑</div>
+    <div>
+      <div style="font-size: 14px; font-weight: 700; line-height: 1;">PHYSICS LAB</div>
+      <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">C++ / WebAssembly Engine</div>
+    </div>
+  </div>
+  <div class="nav-modes">
+    <button id="navSimulator" class="active">⚙ SIMULATOR</button>
+    <button id="navLaws">⚛ PHYSICS LAWS</button>
+  </div>
+  <div class="telemetry-bar">
+    <div>Time: <span id="telTime" style="color:var(--text)">0.00s</span></div>
+    <div>FPS: <span id="telFps" style="color:var(--text)">0</span></div>
+    <div>Objects: <span id="telObj" style="color:var(--text)">0</span></div>
+    <div>Engine: <span id="telStatus" style="color:var(--accent-amber)">PAUSED</span></div>
+  </div>
+</div>
+
+<div class="app-grid">
+
+  <!-- LEFT PANEL -->
+  <div class="panel" id="leftPanel">
+    <div class="panel-header" id="leftHeader">World Controls</div>
+    <div class="panel-content" id="leftContent">
+      <!-- Simulator Tools -->
+      <div id="simTools">
+        <div class="segmented-control" id="simTabs">
+          <button class="active" data-tab="create">Create</button>
+          <button data-tab="world">World</button>
+        </div>
+
+        <div id="tabCreate">
+          <div class="form-group">
+            <label>Mobility</label>
+            <select id="objStatic"><option value="false">Dynamic</option><option value="true">Static (Fixed)</option></select>
+          </div>
+          <div class="form-group">
+            <label>Shape</label>
+            <select id="objShape">
+              <option value="circle">Circle</option><option value="rectangle">Rectangle</option><option value="triangle">Triangle</option>
+            </select>
+          </div>
+          <div class="form-group input-row">
+            <div><label id="lblDim1">Radius</label><input type="number" id="objDim1" value="3" step="0.5"></div>
+            <div><label id="lblDim2" style="opacity:0.3">Height</label><input type="number" id="objDim2" value="5" step="0.5" disabled></div>
+          </div>
+          <div class="form-group input-row">
+            <div><label>Mass (kg)</label><input type="number" id="objMass" value="5" step="1"></div>
+          </div>
+          <div class="form-group input-row">
+            <div><label>Pos X</label><input type="number" id="objPx" value="50" step="1"></div>
+            <div><label>Pos Y</label><input type="number" id="objPy" value="40" step="1"></div>
+          </div>
+          <div class="form-group input-row">
+            <div><label>Vel X</label><input type="number" id="objVx" value="0" step="1"></div>
+            <div><label>Vel Y</label><input type="number" id="objVy" value="0" step="1"></div>
+          </div>
+          <button class="btn primary" style="width:100%" id="btnCreate">Add Object</button>
+        </div>
+
+        <div id="tabWorld" class="hidden">
+          <div class="form-group">
+            <label>Gravity (m/s²)</label>
+            <input type="number" id="worldGrav" value="9.8" step="0.1">
+          </div>
+          <div class="form-group">
+            <label>Kinetic Friction (μ)</label>
+            <input type="number" id="worldFric" value="0.04" step="0.01">
+          </div>
+          <div class="form-group">
+            <label>Time Step (s)</label>
+            <input type="number" id="worldDt" value="0.05" step="0.01">
+          </div>
+          <button class="btn primary" style="width:100%; margin-bottom: 16px;" id="btnApplyWorld">Apply Parameters</button>
+
+          <div style="border-top: 1px solid var(--surface-border); padding-top: 16px;">
+            <div class="form-group">
+              <label>Apply Impulse to Selected Object</label>
+              <div class="input-row">
+                <input type="number" id="impulseX" placeholder="Force X" value="50">
+                <input type="number" id="impulseY" placeholder="Force Y" value="0">
+              </div>
+            </div>
+            <button class="btn" style="width:100%" id="btnImpulse">Fire Impulse</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Physics Laws Selector -->
+      <div id="lawTools" class="hidden">
+        <button class="experiment-btn" data-exp="n1">
+          <strong>Newton's First Law</strong><span>Inertia & Net Force = 0</span>
+        </button>
+        <button class="experiment-btn" data-exp="n2">
+          <strong>Newton's Second Law</strong><span>F = ma Dynamics</span>
+        </button>
+        <button class="experiment-btn" data-exp="n3">
+          <strong>Newton's Third Law</strong><span>Action / Reaction</span>
+        </button>
+        <button class="experiment-btn" data-exp="proj">
+          <strong>Projectile Motion</strong><span>2D Kinematics</span>
+        </button>
+        <button class="experiment-btn" data-exp="fall">
+          <strong>Free Fall</strong><span>Gravitational Acceleration</span>
+        </button>
+        <button class="experiment-btn" data-exp="fric">
+          <strong>Friction Lab</strong><span>Kinetic opposing force</span>
+        </button>
+        <button class="experiment-btn" data-exp="ke">
+          <strong>Kinetic Energy</strong><span>Energy of motion</span>
+        </button>
+        <button class="experiment-btn" data-exp="mom">
+          <strong>Momentum</strong><span>p = mv</span>
+        </button>
+        <button class="experiment-btn" data-exp="col">
+          <strong>Collision Lab</strong><span>Momentum Transfer</span>
+        </button>
+        <button class="experiment-btn" data-exp="cons">
+          <strong>Energy Conservation</strong><span>Potential ↔ Kinetic</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CANVAS AREA -->
+  <div class="canvas-container" id="canvasFrame">
+    <canvas id="worldCanvas"></canvas>
+  </div>
+
+  <!-- BOTTOM TRANSPORT -->
+  <div class="transport-bar">
+    <div class="t-controls">
+      <button class="btn primary" id="btnRun">▶ PLAY</button>
+      <button class="btn" id="btnStep">STEP</button>
+      <button class="btn" id="btnUndo">UNDO</button>
+      <button class="btn" id="btnReset">RESET WORLD</button>
+    </div>
+    <div class="t-controls">
+      <button class="btn" id="btnToggleGrid">Toggle Grid</button>
+      <button class="btn" id="btnToggleVec">Toggle Vectors</button>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="panel" id="rightPanel">
+    <div class="panel-header" id="rightHeader">Inspector</div>
+    <div class="panel-content" id="rightContent">
+
+      <!-- Simulator Inspector -->
+      <div id="simInspector">
+        <div id="objList" style="margin-bottom: 16px; border-bottom: 1px solid var(--surface-border); padding-bottom: 16px;">
+          <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 8px;">World Objects</div>
+          <div id="objListContainer"></div>
+        </div>
+        <div id="objDetails">
+          <div style="font-size: 10px; color: var(--text-muted); text-align: center;">Select an object</div>
+        </div>
+      </div>
+
+      <!-- Physics Laws Readouts -->
+      <div id="lawInspector" class="hidden">
+        <div id="lawDesc" style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px;">Select an experiment from the left.</div>
+        <div id="lawEq" class="equation-box hidden"></div>
+        <div id="lawControls" style="margin-bottom: 16px;"></div>
+        <div id="lawMetrics"></div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">Message</div>
+
+<!-- LOAD C++ WASM BACKEND -->
+<script>
+  var Module = { onRuntimeInitialized: function() { window.dispatchEvent(new Event('physics-engine-ready')); } };
+</script>
+<script src="physics_engine.js"></script>
+
+<!-- FRONTEND APPLICATION LOGIC -->
+<script>
+(function() {
+  'use strict';
+
+  // --- STATE ---
+  const state = {
+    ready: false, running: false, mode: 'SIMULATOR', /* 'SIMULATOR' | 'LAWS' */
+    simState: null, selectedId: null, drag: null,
+    view: { w: 100, h: 60, scaleX: 1, scaleY: 1, offsetX: 0, offsetY: 0 },
+    options: { grid: true, vectors: true },
+    law: { active: null, setup: false },
+    timeStats: { last: 0, accum: 0, frames: 0, fps: 0, lastFpsTime: 0 }
+  };
+
+  // --- DOM UTILS ---
+  const $ = id => document.getElementById(id);
+  const n = id => Number($(id).value);
+  const fmt = (val, dec=2) => Number.isFinite(val) ? val.toFixed(dec) : '—';
+
+  function toast(msg) {
+    const t = $('toast'); t.textContent = msg; t.classList.add('show');
+    clearTimeout(toast.timer); toast.timer = setTimeout(() => t.classList.remove('show'), 1500);
+  }
+
+  // --- C++ WASM WRAPPER ---
+  function api(method, ...args) {
+    if (!state.ready) throw new Error("C++ Engine offline.");
+    return Module[method](...args);
+  }
+
+  function fetchState() {
+    if (!state.ready) return;
+    state.simState = JSON.parse(api('getStateJSON'));
+    updateAutoScaling();
+  }
+
+  function updateAutoScaling() {
+    let maxW = 100, maxH = 60;
+    state.simState.objects.forEach(o => {
+      maxW = Math.max(maxW, o.pos.x + o.radius + 10);
+      maxH = Math.max(maxH, o.pos.y + o.radius + 10);
+    });
+    // Quantize bounds to nearest 10
+    state.view.w = Math.max(100, Math.ceil(maxW/10)*10);
+    state.view.h = Math.max(60, Math.ceil(maxH/10)*10);
+  }
+
+  // --- ROUTING & UI SETUP ---
+  function setMode(mode) {
+    state.mode = mode;
+    $('navSimulator').className = mode === 'SIMULATOR' ? 'active' : '';
+    $('navLaws').className = mode === 'LAWS' ? 'active' : '';
+
+    if (mode === 'SIMULATOR') {
+      $('leftHeader').textContent = 'World Controls';
+      $('rightHeader').textContent = 'Inspector';
+      $('simTools').classList.remove('hidden');
+      $('lawTools').classList.add('hidden');
+      $('simInspector').classList.remove('hidden');
+      $('lawInspector').classList.add('hidden');
+      state.law.active = null;
+    } else {
+      $('leftHeader').textContent = 'Experiments';
+      $('rightHeader').textContent = 'Laboratory Data';
+      $('simTools').classList.add('hidden');
+      $('lawTools').classList.remove('hidden');
+      $('simInspector').classList.add('hidden');
+      $('lawInspector').classList.remove('hidden');
+    }
+    api('pause'); state.running = false;
+    updateTransportUI();
+    updateUI();
+  }
+
+  // --- SIMULATOR EVENT LISTENERS ---
+  $('objShape').onchange = (e) => {
+    const s = e.target.value;
+    $('lblDim1').textContent = s === 'circle' ? 'Radius' : 'Width';
+    $('lblDim2').textContent = s === 'circle' ? 'Height' : 'Height';
+    $('objDim2').disabled = s === 'circle';
+    $('lblDim2').style.opacity = s === 'circle' ? '0.3' : '1';
+  };
+
+  $('simTabs').addEventListener('click', e => {
+    if(e.target.tagName !== 'BUTTON') return;
+    document.querySelectorAll('#simTabs button').forEach(b => b.classList.remove('active'));
+    e.target.classList.add('active');
+    $('tabCreate').classList.toggle('hidden', e.target.dataset.tab !== 'create');
+    $('tabWorld').classList.toggle('hidden', e.target.dataset.tab !== 'world');
+  });
+
+  $('btnCreate').onclick = () => {
+    try {
+      const isStatic = $('objStatic').value === 'true';
+      const shape = $('objShape').value;
+      const id = shape === 'circle' ? api('createCircle', isStatic, n('objMass'), n('objPx'), n('objPy'), n('objDim1'), n('objVx'), n('objVy'))
+               : shape === 'rectangle' ? api('createRectangle', isStatic, n('objMass'), n('objPx'), n('objPy'), n('objDim1'), n('objDim2'), n('objVx'), n('objVy'))
+               : api('createTriangle', isStatic, n('objMass'), n('objPx'), n('objPy'), n('objDim1'), n('objDim2'), n('objVx'), n('objVy'));
+      state.selectedId = id;
+      fetchState(); updateUI(); toast('Object Created');
+    } catch (err) { toast('Error: Check inputs'); }
+  };
+
+  $('btnApplyWorld').onclick = () => {
+    const g = n('worldGrav'), f = n('worldFric'), dt = n('worldDt');
+    api('setTimeStep', dt);
+    g === 0 ? api('disableGravity') : api('setGravity', g);
+    f === 0 ? api('disableFriction') : api('setFriction', f);
+    fetchState(); updateUI(); toast('World Updated');
+  };
+
+  $('btnImpulse').onclick = () => {
+    if (!state.selectedId) return toast('Select dynamic object first');
+    try { api('applyImpulse', state.selectedId, n('impulseX'), n('impulseY')); fetchState(); renderCanvas(); toast('Impulse Applied'); }
+    catch(e) { toast('Object is static'); }
+  };
+
+  // --- TRANSPORT CONTROLS ---
+  function updateTransportUI() {
+    $('btnRun').textContent = state.running ? '❚❚ PAUSE' : '▶ PLAY';
+    $('telStatus').textContent = state.running ? 'RUNNING' : 'PAUSED';
+    $('telStatus').style.color = state.running ? 'var(--accent-green)' : 'var(--accent-amber)';
+  }
+
+  $('btnRun').onclick = () => { state.running = !state.running; state.running ? api('resume') : api('pause'); updateTransportUI(); };
+  $('btnStep').onclick = () => { api('resume'); api('step', 1); api('pause'); state.running = false; fetchState(); updateTransportUI(); updateUI(); };
+  $('btnUndo').onclick = () => { api('pause'); state.running = false; api('undo'); fetchState(); updateTransportUI(); updateUI(); toast('Undo'); };
+  $('btnReset').onclick = () => { api('pause'); state.running = false; api('reset'); state.selectedId = null; fetchState(); updateTransportUI(); updateUI(); toast('Reset'); };
+
+  $('btnToggleGrid').onclick = () => { state.options.grid = !state.options.grid; renderCanvas(); };
+  $('btnToggleVec').onclick = () => { state.options.vectors = !state.options.vectors; renderCanvas(); };
+
+  // --- PHYSICS LAWS LAB IMPLEMENTATION ---
+  const Labs = {
+    n1: {
+      name: "Newton's First Law", eq: "ΣF = 0 → v = constant",
+      desc: "An object maintains its state of motion because net force is zero (no gravity/friction).",
+      setup: () => {
+        api('disableGravity'); api('disableFriction');
+        api('createCircle', false, 5, 20, 30, 3, 10, 0); // Mass 5, Vx 10
+      },
+      metrics: (s) => {
+        const obj = s.objects[0];
+        return obj ? `<div class="metric-box"><small>Velocity X</small><div>${fmt(obj.vel.x)} m/s</div></div>
+                      <div class="metric-box"><small>Acceleration X</small><div>${fmt(obj.acc.x)} m/s²</div></div>` : '';
+      }
+    },
+    n2: {
+      name: "Newton's Second Law", eq: "F = ma",
+      desc: "Equal impulses applied to different masses result in different accelerations/velocities.",
+      setup: () => {
+        api('disableGravity'); api('disableFriction');
+        const id1 = api('createCircle', false, 2, 20, 40, 3, 0, 0); // Light
+        const id2 = api('createCircle', false, 8, 20, 20, 3, 0, 0); // Heavy
+        api('applyImpulse', id1, 100, 0); api('applyImpulse', id2, 100, 0);
+      },
+      metrics: (s) => {
+        const m1 = s.objects[0], m2 = s.objects[1];
+        return (m1 && m2) ? `<div class="metric-box"><small>Mass 1 (Light) Velocity</small><div>${fmt(m1.vel.x)} m/s</div></div>
+                             <div class="metric-box"><small>Mass 2 (Heavy) Velocity</small><div>${fmt(m2.vel.x)} m/s</div></div>` : '';
+      }
+    },
+    n3: {
+      name: "Newton's Third Law", eq: "F₁₂ = -F₂₁",
+      desc: "Objects experience equal and opposite forces during a collision.",
+      setup: () => {
+        api('disableGravity'); api('disableFriction');
+        api('createCircle', false, 4, 30, 30, 4, 15, 0);
+        api('createCircle', false, 4, 70, 30, 4, -15, 0);
+      },
+      metrics: (s) => {
+        const c = s.recentCollisions[0];
+        return c ? `<div class="metric-box" style="border-color:var(--accent-red)"><small>Collision Event!</small><div>Penetration: ${fmt(c.penetration, 3)}</div></div>` : '<div style="font-size:11px; color:var(--text-muted)">Awaiting impact...</div>';
+      }
+    },
+    proj: {
+      name: "Projectile Motion", eq: "x = v₀t cos(θ), y = v₀t sin(θ) - ½gt²",
+      desc: "Independent horizontal and vertical motion under gravity.",
+      setup: () => {
+        api('setGravity', 9.8); api('disableFriction');
+        api('createRectangle', true, 1, 50, 5, 100, 5, 0, 0); // Floor
+        api('createCircle', false, 2, 5, 10, 2, 20, 30); // Projectile
+      },
+      metrics: (s) => {
+        const p = s.objects.find(o => !o.isStatic);
+        if(!p) return '';
+        const v = Math.hypot(p.vel.x, p.vel.y);
+        return `<div class="metric-box"><small>Speed (|v|)</small><div>${fmt(v)} m/s</div></div>
+                <div class="metric-box"><small>Height (y)</small><div>${fmt(p.pos.y)} m</div></div>`;
+      }
+    },
+    fall: {
+      name: "Free Fall", eq: "v = gt", desc: "Acceleration due to gravity.",
+      setup: () => {
+        api('setGravity', 9.8); api('disableFriction');
+        api('createRectangle', true, 1, 50, 5, 100, 5, 0, 0);
+        api('createCircle', false, 5, 50, 50, 3, 0, 0);
+      },
+      metrics: (s) => {
+        const p = s.objects.find(o => !o.isStatic);
+        return p ? `<div class="metric-box"><small>Velocity Y</small><div>${fmt(p.vel.y)} m/s</div></div>` : '';
+      }
+    },
+    fric: {
+      name: "Friction", eq: "F_k = μ_k N", desc: "Kinetic friction opposes motion.",
+      setup: () => {
+        api('setGravity', 9.8); api('setFriction', 0.2);
+        api('createRectangle', true, 1, 50, 5, 100, 5, 0, 0);
+        api('createRectangle', false, 5, 15, 10, 6, 6, 25, 0);
+      },
+      metrics: (s) => {
+        const p = s.objects.find(o => !o.isStatic);
+        return p ? `<div class="metric-box"><small>Velocity X</small><div>${fmt(p.vel.x)} m/s</div></div>` : '';
+      }
+    },
+    ke: {
+      name: "Kinetic Energy", eq: "KE = ½mv²", desc: "Energy of a mass in motion.",
+      setup: () => {
+        api('disableGravity'); api('disableFriction');
+        api('createRectangle', false, 10, 20, 30, 5, 5, 12, 0);
+      },
+      metrics: (s) => {
+        const p = s.objects[0];
+        if(!p) return '';
+        const ke = 0.5 * p.mass * (p.vel.x**2 + p.vel.y**2);
+        return `<div class="metric-box" style="border-color:var(--accent-blue)"><small>Frontend Calc KE</small><div>${fmt(ke)} J</div></div>
+                <div class="metric-box"><small>Backend Total KE</small><div>${fmt(s.stats.kineticEnergy)} J</div></div>`;
+      }
+    },
+    mom: {
+      name: "Momentum", eq: "p = mv", desc: "Product of mass and velocity.",
+      setup: () => {
+        api('disableGravity'); api('disableFriction');
+        api('createCircle', false, 6, 20, 30, 3, 10, 0);
+      },
+      metrics: (s) => {
+        const p = s.objects[0];
+        if(!p) return '';
+        const mom = p.mass * p.vel.x;
+        return `<div class="metric-box"><small>Momentum (p_x)</small><div>${fmt(mom)} kg·m/s</div></div>`;
+      }
+    },
+    col: {
+      name: "Collision Lab", eq: "m₁v₁ + m₂v₂ = m₁v₁' + m₂v₂'", desc: "Momentum transfer during impact.",
+      setup: () => {
+        api('disableGravity'); api('disableFriction');
+        api('createCircle', false, 3, 30, 30, 4, 10, 0);
+        api('createCircle', false, 5, 70, 30, 5, -5, 0);
+      },
+      metrics: (s) => {
+        if(s.objects.length < 2) return '';
+        const p1 = s.objects[0].mass * s.objects[0].vel.x;
+        const p2 = s.objects[1].mass * s.objects[1].vel.x;
+        return `<div class="metric-box"><small>Total Momentum P_x</small><div>${fmt(p1+p2)} kg·m/s</div></div>`;
+      }
+    },
+    cons: {
+      name: "Energy Conservation", eq: "E = mgh + ½mv² = const", desc: "Transformation between Potential and Kinetic.",
+      setup: () => {
+        api('setGravity', 9.8); api('disableFriction');
+        api('createRectangle', true, 1, 50, 5, 100, 5, 0, 0);
+        api('createCircle', false, 4, 50, 55, 3, 0, 0);
+      },
+      metrics: (s) => {
+        const p = s.objects.find(o => !o.isStatic);
+        if(!p) return '';
+        const height = Math.max(0, p.pos.y - 7.5); // relative to floor
+        const pe = p.mass * 9.8 * height;
+        const ke = 0.5 * p.mass * (p.vel.x**2 + p.vel.y**2);
+        return `<div class="metric-box"><small>Potential Energy (mgh)</small><div>${fmt(pe)} J</div></div>
+                <div class="metric-box"><small>Kinetic Energy (½mv²)</small><div>${fmt(ke)} J</div></div>
+                <div class="metric-box" style="border-color:var(--accent-amber)"><small>Total Energy</small><div>${fmt(pe+ke)} J</div></div>`;
+      }
+    }
+  };
+
+  document.querySelectorAll('.experiment-btn').forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll('.experiment-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const expKey = btn.dataset.exp;
+      state.law.active = expKey;
+
+      api('pause'); state.running = false;
+      api('reset'); api('setTimeStep', 0.05);
+      Labs[expKey].setup();
+
+      $('lawDesc').textContent = Labs[expKey].desc;
+      $('lawEq').textContent = Labs[expKey].eq;
+      $('lawEq').classList.remove('hidden');
+
+      fetchState(); updateTransportUI(); updateUI();
+      toast(Labs[expKey].name + ' Loaded');
+    };
+  });
+
+  // --- UI UPDATES ---
+  function updateUI() {
+    if (!state.simState) return;
+
+    // Telemetry
+    $('telTime').textContent = fmt(state.simState.time) + 's';
+    $('telObj').textContent = state.simState.stats.objects;
+
+    if (state.mode === 'SIMULATOR') {
+      // Sync World inputs
+      $('worldGrav').value = state.simState.gravityEnabled ? state.simState.gravity : 0;
+      $('worldFric').value = state.simState.frictionEnabled ? state.simState.friction : 0;
+      $('worldDt').value = state.simState.timeStep;
+
+      // Object List
+      const list = $('objListContainer');
+      list.innerHTML = '';
+      state.simState.objects.forEach(o => {
+        const div = document.createElement('div');
+        div.className = 'obj-item ' + (o.id === state.selectedId ? 'selected' : '');
+        div.innerHTML = `<span class="obj-ident">#${o.id} ${o.shape}</span> <span class="badge">${o.isStatic?'STATIC':'DYNAMIC'}</span>`;
+        div.onclick = () => { state.selectedId = o.id; updateUI(); renderCanvas(); };
+        list.appendChild(div);
+      });
+
+      // Object Inspector
+      const sel = state.simState.objects.find(o => o.id === state.selectedId);
+      if (sel) {
+        $('objDetails').innerHTML = `
+          <div class="metric-box"><small>Type</small><div>${sel.shape} (${sel.isStatic?'Static':'Dynamic'})</div></div>
+          <div class="metric-box"><small>Mass</small><div>${sel.isStatic ? '∞' : fmt(sel.mass)+' kg'}</div></div>
+          <div class="metric-box"><small>Position</small><div>X: ${fmt(sel.pos.x)}, Y: ${fmt(sel.pos.y)}</div></div>
+          <div class="metric-box"><small>Velocity</small><div>X: ${fmt(sel.vel.x)}, Y: ${fmt(sel.vel.y)}</div></div>
+          <button class="btn" style="width:100%; margin-top:10px; color:var(--accent-red); border-color:var(--accent-red);" id="btnDelObj">Remove Object</button>
+        `;
+        $('btnDelObj').onclick = () => { api('removeObject', sel.id); state.selectedId = null; fetchState(); updateUI(); renderCanvas(); };
+      } else {
+        $('objDetails').innerHTML = `<div style="font-size: 10px; color: var(--text-muted); text-align: center;">Select an object</div>`;
+      }
+    } else {
+      // Laws Mode
+      if (state.law.active && Labs[state.law.active]) {
+        $('lawMetrics').innerHTML = Labs[state.law.active].metrics(state.simState);
+      }
+    }
+    renderCanvas();
+  }
+
+  // --- CANVAS RENDERING ---
+  const canvas = $('worldCanvas');
+  const ctx = canvas.getContext('2d');
+
+  function resizeCanvas() {
+    const rect = $('canvasFrame').getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+    renderCanvas();
+  }
+  window.addEventListener('resize', resizeCanvas);
+
+  function renderCanvas() {
+    if (!state.simState) return;
+    const cw = canvas.width / (window.devicePixelRatio || 1);
+    const ch = canvas.height / (window.devicePixelRatio || 1);
+
+    ctx.clearRect(0, 0, cw, ch);
+
+    // Compute layout matching C++ coords but preserving aspect ratio
+    const aspect = state.view.w / state.view.h;
+    let pw = cw - 32, ph = ch - 32;
+    if (pw / ph > aspect) pw = ph * aspect; else ph = pw / aspect;
+    const px = (cw - pw) / 2, py = (ch - ph) / 2;
+
+    const sx = pw / state.view.w, sy = ph / state.view.h;
+
+    // Draw Background Grid Frame
+    ctx.fillStyle = '#0a0d14';
+    ctx.fillRect(px, py, pw, ph);
+    ctx.strokeStyle = '#1a222e'; ctx.lineWidth = 1;
+    ctx.strokeRect(px, py, pw, ph);
+
+    // Grid lines
+    if (state.options.grid) {
+      ctx.beginPath();
+      for(let x = 10; x < state.view.w; x += 10) { ctx.moveTo(px + x*sx, py); ctx.lineTo(px + x*sx, py + ph); }
+      for(let y = 10; y < state.view.h; y += 10) { ctx.moveTo(px, py + ph - y*sy); ctx.lineTo(px + pw, py + ph - y*sy); }
+      ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.stroke();
+    }
+
+    // Draw Objects
+    state.simState.objects.forEach(o => {
+      const cx = px + o.pos.x * sx;
+      const cy = py + ph - o.pos.y * sy; // Y up in physics
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.fillStyle = o.isStatic ? '#64748b' : (o.shape === 'Circle' ? '#ffb454' : o.shape === 'Rectangle' ? '#74a7ff' : '#69d39b');
+      ctx.strokeStyle = (o.id === state.selectedId) ? '#fff' : 'rgba(0,0,0,0.5)';
+      ctx.lineWidth = o.id === state.selectedId ? 2 : 1;
+
+      if (o.shape === 'Circle') {
+        const r = Math.max(2, o.radius * sx);
+        ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      } else if (o.shape === 'Rectangle') {
+        const w = o.shapeParams[0] * sx, h = o.shapeParams[1] * sy;
+        ctx.beginPath(); ctx.rect(-w/2, -h/2, w, h); ctx.fill(); ctx.stroke();
+      } else {
+        const w = o.shapeParams[0] * sx, h = o.shapeParams[1] * sy;
+        ctx.beginPath(); ctx.moveTo(-w/2, h/2); ctx.lineTo(w/2, h/2); ctx.lineTo(0, -h/2); ctx.closePath(); ctx.fill(); ctx.stroke();
+      }
+      ctx.restore();
+
+      // Velocity vectors
+      if (state.options.vectors && !o.isStatic && Math.hypot(o.vel.x, o.vel.y) > 0.1) {
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + o.vel.x * sx * 0.2, cy - o.vel.y * sy * 0.2);
+        ctx.strokeStyle = '#ff6b57'; ctx.lineWidth = 2; ctx.stroke();
+      }
+    });
+  }
+
+  // Mouse Interaction (Drag)
+  function getMouseWorldCoords(e) {
+    const rect = canvas.getBoundingClientRect();
+    const cw = rect.width, ch = rect.height;
+    const aspect = state.view.w / state.view.h;
+    let pw = cw - 32, ph = ch - 32;
+    if (pw / ph > aspect) pw = ph * aspect; else ph = pw / aspect;
+    const px = (cw - pw) / 2, py = (ch - ph) / 2;
+    const sx = pw / state.view.w, sy = ph / state.view.h;
+
+    let mx = (e.clientX - rect.left - px) / sx;
+    let my = state.view.h - ((e.clientY - rect.top - py) / sy);
+    return {x: mx, y: my};
+  }
+
+  canvas.addEventListener('pointerdown', e => {
+    if(!state.simState) return;
+    const m = getMouseWorldCoords(e);
+    let hit = null, minDist = Infinity;
+    state.simState.objects.forEach(o => {
+      const dist = Math.hypot(m.x - o.pos.x, m.y - o.pos.y);
+      if(dist <= Math.max(o.radius, 3) && dist < minDist) { minDist = dist; hit = o; }
+    });
+    if(hit) {
+      state.selectedId = hit.id; state.drag = hit.id;
+      canvas.setPointerCapture(e.pointerId);
+      if(state.running) { api('pause'); state.running = false; updateTransportUI(); }
+      updateUI();
+    }
+  });
+
+  canvas.addEventListener('pointermove', e => {
+    if(!state.drag || !state.ready) return;
+    const m = getMouseWorldCoords(e);
+    api('setObjectPosition', state.drag, m.x, m.y);
+    fetchState(); renderCanvas();
+  });
+
+  canvas.addEventListener('pointerup', e => { state.drag = null; canvas.releasePointerCapture(e.pointerId); updateUI(); });
+
+  // --- MAIN LOOP ---
+  function tick(timestamp) {
+    if (!state.timeStats.last) state.timeStats.last = timestamp;
+    const dtWall = (timestamp - state.timeStats.last) / 1000;
+    state.timeStats.last = timestamp;
+
+    // FPS Calc
+    state.timeStats.frames++;
+    if (timestamp - state.timeStats.lastFpsTime >= 1000) {
+      $('telFps').textContent = state.timeStats.frames;
+      state.timeStats.frames = 0; state.timeStats.lastFpsTime = timestamp;
+    }
+
+    if (state.ready && state.running) {
+      const dtSim = state.simState ? state.simState.timeStep : 0.05;
+      state.timeStats.accum += dtWall;
+      const steps = Math.min(10, Math.floor(state.timeStats.accum / dtSim));
+      if (steps > 0) {
+        state.timeStats.accum -= steps * dtSim;
+        api('step', steps);
+        fetchState();
+        updateUI();
+      }
+    }
+    requestAnimationFrame(tick);
+  }
+
+  // --- INIT ---
+  window.addEventListener('physics-engine-ready', () => {
+    state.ready = true;
+    $('telStatus').textContent = 'READY';
+    fetchState(); resizeCanvas(); updateUI();
+
+    // Wire up Navs
+    $('navSimulator').onclick = () => setMode('SIMULATOR');
+    $('navLaws').onclick = () => setMode('LAWS');
+  });
+
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
